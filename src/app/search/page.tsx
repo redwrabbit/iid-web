@@ -64,11 +64,11 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="이드의 글/영상에 대해 물어보세요… (예: 스톡옵션은 왜 나눠갖는 거라고 했나요?)"
-            className="flex-1 border border-[#1B3A4B29] rounded-xl px-4 py-3 text-sm bg-[#FBF9F2] focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]"
+            className="flex-1 border border-[rgba(143,168,181,0.25)] rounded-xl px-4 py-3 text-sm bg-[#072431] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
           />
           <button
             type="submit"
-            className="w-12 h-12 shrink-0 rounded-xl bg-[#1B3A4B] text-[#FBF9F2] flex items-center justify-center text-lg"
+            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-[#140800] flex items-center justify-center text-lg"
           >
             →
           </button>
@@ -82,8 +82,8 @@ export default function SearchPage() {
               onClick={() => setCategory(c)}
               className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
                 category === c
-                  ? "bg-[#1B3A4B] text-[#FBF9F2] border-[#1B3A4B]"
-                  : "bg-[#FBF9F2] text-[#5B6B72] border-[#1B3A4B29] hover:border-[#1B3A4B]"
+                  ? "bg-[#FF4103] text-[#140800] border-[#FF4103]"
+                  : "bg-[#072431] text-[#8FA8B5] border-[rgba(143,168,181,0.2)] hover:border-[#FF4103]"
               }`}
             >
               {c}
@@ -93,17 +93,17 @@ export default function SearchPage() {
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           {!posts ? (
-            <p className="text-sm text-[#8B968E]">이드의 글을 불러오는 중…</p>
+            <p className="text-sm text-[#5B7483]">이드의 글을 불러오는 중…</p>
           ) : !submitted ? (
-            <div className="bg-[#FBF9F2] border border-[#1B3A4B14] rounded-2xl p-5">
-              <p className="text-sm text-[#5B6B72] mb-3">이런 질문들을 예로 눌러볼 수 있어요.</p>
+            <div className="bg-[#072431] border border-[rgba(143,168,181,0.14)] rounded-2xl p-5">
+              <p className="text-sm text-[#8FA8B5] mb-3">이런 질문들을 예로 눌러볼 수 있어요.</p>
               <div className="flex flex-wrap gap-2">
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex}
                     type="button"
                     onClick={() => runSearch(ex)}
-                    className="text-xs px-3 py-2 rounded-full bg-[#F1EEE4] border border-[#1B3A4B14] hover:border-[#1B3A4B]"
+                    className="text-xs px-3 py-2 rounded-full bg-[#0B2C3C] text-[#D7E2E7] border border-[rgba(143,168,181,0.14)] hover:border-[#FF4103]"
                   >
                     {ex}
                   </button>
@@ -111,13 +111,13 @@ export default function SearchPage() {
               </div>
             </div>
           ) : results.length === 0 ? (
-            <p className="text-sm text-[#5B6B72] p-2">관련된 글을 찾지 못했어요. 다른 단어로 다시 물어봐 주세요.</p>
+            <p className="text-sm text-[#8FA8B5] p-2">관련된 글을 찾지 못했어요. 다른 단어로 다시 물어봐 주세요.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {results.map((r) => (
-                <li key={r.post.id} className="bg-[#FBF9F2] border border-[#1B3A4B14] rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-xs text-[#8B968E] mb-1.5">
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#B8791E]">
+                <li key={r.post.id} className="bg-[#072431] border border-[rgba(143,168,181,0.14)] rounded-2xl p-4">
+                  <div className="flex items-center gap-2 text-xs text-[#5B7483] mb-1.5">
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#FF6B3D]">
                       {r.post.source}
                       <SourceIcon source={r.post.source} />
                     </span>
@@ -130,12 +130,12 @@ export default function SearchPage() {
                     href={r.post.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-serif font-semibold text-[15px] text-[#12262F] hover:text-[#1B3A4B] hover:underline"
+                    className="font-serif font-semibold text-[15px] text-[#F3EFE8] hover:text-[#FF6B3D] hover:underline"
                   >
                     {r.post.title}
                   </a>
                   <p
-                    className="text-[13px] leading-relaxed text-[#5B6B72] mt-1.5"
+                    className="text-[13px] leading-relaxed text-[#8FA8B5] mt-1.5"
                     dangerouslySetInnerHTML={{ __html: makeSnippet(r.post, r.qTokens) }}
                   />
                 </li>

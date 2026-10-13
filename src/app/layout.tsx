@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={`${notoSans.variable} ${notoSerif.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#F1EEE4] text-[#12262F] font-sans antialiased">
+      <body className="min-h-full flex flex-col bg-[#001621] text-[#F3EFE8] font-sans antialiased">
         <NavBar />
         <main className="flex-1 flex flex-col min-h-0">{children}</main>
       </body>

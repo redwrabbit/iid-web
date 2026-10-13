@@ -9,9 +9,18 @@
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 mark {
-  background: #F4D888;
-  color: #12262F;
+  background: rgba(255, 65, 3, 0.35);
+  color: #F3EFE8;
   border-radius: 3px;
   padding: 0 1px;
+}
+
+::selection {
+  background: rgba(255, 65, 3, 0.4);
+  color: #F3EFE8;
 }
