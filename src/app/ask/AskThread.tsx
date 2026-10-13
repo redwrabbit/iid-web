@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ArrowUp, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Question = {
@@ -59,7 +60,10 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
                   {it.answer}
                 </div>
               ) : (
-                <div className="text-xs text-[#5B7483]">⏳ 이드가 확인하고 답변할 예정이에요</div>
+                <div className="flex items-center gap-1.5 text-xs text-[#5B7483]">
+                  <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                  이드가 확인하고 답변할 예정이에요
+                </div>
               )}
             </div>
           ))}
@@ -85,9 +89,9 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
           <button
             type="submit"
             disabled={busy}
-            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-[#140800] flex items-center justify-center text-lg disabled:opacity-60"
+            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-[#140800] flex items-center justify-center disabled:opacity-60"
           >
-            →
+            <ArrowUp className="w-5 h-5" strokeWidth={2.25} />
           </button>
         </div>
       </form>

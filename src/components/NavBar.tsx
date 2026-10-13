@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./LogoutButton";
 
@@ -52,9 +53,10 @@ export default async function NavBar() {
           {isAdmin && (
             <Link
               href="/admin"
-              className="text-sm font-semibold px-3 py-2 rounded-lg text-[#FF4103] hover:bg-[rgba(255,65,3,0.14)]"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-[#FF4103] hover:bg-[rgba(255,65,3,0.14)]"
             >
-              ⚙ 관리자
+              <Settings className="w-4 h-4" strokeWidth={2.25} />
+              관리자
             </Link>
           )}
         </nav>

@@ -195,4 +195,4 @@ export function makeSnippet(post: Post, qTokens: string[]): string {
   return escaped;
 }
 
-export const CATEGORY_LIST = ['전체', '채용', '평가', '보상', '조직관리', '리더십', '노무', '기타'];
+export const CATEGORY_LIST = ['전체', '리더십', '경영·비즈니스', '조직관리', '채용', '에세이·멘탈', '커리어·성장', '보상', '평가', '노무', '기타'];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Inbox, BarChart3, Users, History, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Question = {
@@ -70,18 +71,19 @@ export default function AdminDashboard({
 
       <div className="flex gap-1 mb-5 border-b border-[rgba(143,168,181,0.18)]">
         {[
-          { k: "inbox", label: `질문함${pending.length ? ` (${pending.length})` : ""}` },
-          { k: "analytics", label: "질문 분석" },
-          { k: "members", label: "회원" },
-          { k: "logs", label: "검색 로그" },
+          { k: "inbox", label: `질문함${pending.length ? ` (${pending.length})` : ""}`, Icon: Inbox },
+          { k: "analytics", label: "질문 분석", Icon: BarChart3 },
+          { k: "members", label: "회원", Icon: Users },
+          { k: "logs", label: "검색 로그", Icon: History },
         ].map((t) => (
           <button
             key={t.k}
             onClick={() => setTab(t.k as typeof tab)}
-            className={`text-sm font-semibold px-4 py-2.5 rounded-t-lg border border-b-0 ${
+            className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-t-lg border border-b-0 ${
               tab === t.k ? "bg-[#072431] border-[rgba(143,168,181,0.18)] text-[#FF6B3D]" : "bg-transparent border-transparent text-[#5B7483]"
             }`}
           >
+            <t.Icon className="w-4 h-4" strokeWidth={2.25} />
             {t.label}
           </button>
         ))}
@@ -194,8 +196,9 @@ function ReplyBox({ onSend }: { onSend: (text: string) => void }) {
           await onSend(text.trim());
           setBusy(false);
         }}
-        className="self-start bg-[#FF4103] text-[#140800] text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+        className="self-start inline-flex items-center gap-1.5 bg-[#FF4103] text-[#140800] text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
       >
+        <Send className="w-3.5 h-3.5" strokeWidth={2.25} />
         {busy ? "보내는 중…" : "답변 보내기"}
       </button>
     </div>
