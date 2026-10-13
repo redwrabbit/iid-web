@@ -8,6 +8,7 @@ export type Post = {
   text: string;
   source: string;
   category: string;
+  subcategory: string;
 };
 
 type IndexedPost = Post & {
@@ -97,9 +98,10 @@ export class SearchIndex {
     return Math.log(1 + (this.n - df + 0.5) / (df + 0.5)) * weight;
   }
 
-  search(query: string, topK = 8, category?: string): { post: Post; score: number; qTokens: string[] }[] {
+  search(query: string, topK = 8, category?: string, subcategory?: string): { post: Post; score: number; qTokens: string[] }[] {
     const terms = queryTerms(query);
-    const pool = category && category !== '전체' ? this.posts.filter((p) => p.category === category) : this.posts;
+    let pool = category && category !== '전체' ? this.posts.filter((p) => p.category === category) : this.posts;
+    if (subcategory) pool = pool.filter((p) => p.subcategory === subcategory);
     if (!terms.length) return [];
 
     const stats = terms.map((tw) => {
@@ -196,3 +198,16 @@ export function makeSnippet(post: Post, qTokens: string[]): string {
 }
 
 export const CATEGORY_LIST = ['전체', '리더십', '경영·비즈니스', '조직관리', '채용', '에세이·멘탈', '커리어·성장', '보상', '평가', '노무', '기타'];
+
+export const SUBCATEGORY_LIST: Record<string, string[]> = {
+  '채용': ['채용 전략·프로세스', '면접·후보자 평가', '이력서·포지션'],
+  '평가': ['피드백', '평가제도', '성과관리·목표'],
+  '보상': ['연봉·인상률', '스톡옵션·지분', '보상체계'],
+  '조직관리': ['조직문화', '퇴사·이직·리텐션', '조직개편·M&A'],
+  '리더십': ['대표·경영진', '의사결정', '리더와 구성원'],
+  '노무': ['근로시간', '노동법·근로기준법', '노무 리스크·감독'],
+  '커리어·성장': ['커리어 성장', '이직·전직', '자기계발·퍼스널브랜딩'],
+  '경영·비즈니스': ['경영전략', '투자·M&A', '운영·사업'],
+  '에세이·멘탈': ['멘탈·번아웃', '취중잡담', '에세이'],
+  '기타': ['기타'],
+};

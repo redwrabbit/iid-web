@@ -28,32 +28,32 @@ export default async function NavBar() {
   const isAdmin = !!user && user.email === ADMIN_EMAIL;
 
   return (
-    <header className="border-b border-[rgba(143,168,181,0.18)] bg-[#072431]">
+    <header className="border-b border-black/10 bg-white">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="w-9 h-9 rounded-lg bg-[#FF4103] text-[#140800] flex items-center justify-center font-serif font-bold text-sm">
+          <span className="w-9 h-9 rounded-lg bg-[#FF4103] text-white flex items-center justify-center font-serif font-bold text-sm">
             iid
           </span>
-          <span className="font-bold text-[17px] hidden sm:inline">이드에게 물어보기</span>
+          <span className="font-bold text-[17px] hidden sm:inline text-[#111111]">이드에게 물어보기</span>
         </Link>
 
         <nav className="flex items-center gap-1 flex-1">
           <Link
             href="/search"
-            className="text-sm font-semibold px-3 py-2 rounded-lg text-[#8FA8B5] hover:bg-[#0B2C3C] hover:text-[#F3EFE8]"
+            className="text-sm font-semibold px-3 py-2 rounded-lg text-[#555555] hover:bg-[#F4F4F2] hover:text-[#111111]"
           >
             HR 지식 검색
           </Link>
           <Link
             href="/ask"
-            className="text-sm font-semibold px-3 py-2 rounded-lg text-[#8FA8B5] hover:bg-[#0B2C3C] hover:text-[#F3EFE8]"
+            className="text-sm font-semibold px-3 py-2 rounded-lg text-[#555555] hover:bg-[#F4F4F2] hover:text-[#111111]"
           >
             이드에게 질문하기
           </Link>
           {isAdmin && (
             <Link
               href="/admin"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-[#FF4103] hover:bg-[rgba(255,65,3,0.14)]"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-[#FF4103] hover:bg-[rgba(255,65,3,0.1)]"
             >
               <Settings className="w-4 h-4" strokeWidth={2.25} />
               관리자
@@ -63,13 +63,13 @@ export default async function NavBar() {
 
         {user ? (
           <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xs text-[#8FA8B5] hidden sm:inline">{user.email}</span>
+            <span className="text-xs text-[#6B6B6B] hidden sm:inline">{user.email}</span>
             <LogoutButton />
           </div>
         ) : (
           <Link
             href="/login"
-            className="shrink-0 text-sm font-semibold px-4 py-2 rounded-full bg-[#FF4103] text-[#140800] hover:opacity-90"
+            className="shrink-0 text-sm font-semibold px-4 py-2 rounded-full bg-[#FF4103] text-white hover:opacity-90"
           >
             로그인 / 가입
           </Link>

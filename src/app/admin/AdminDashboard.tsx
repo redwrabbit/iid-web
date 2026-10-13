@@ -67,9 +67,9 @@ export default function AdminDashboard({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-6 flex-1">
-      <h1 className="text-xl font-bold mb-5 text-[#F3EFE8]">관리자 페이지</h1>
+      <h1 className="text-xl font-bold mb-5 text-[#111111]">관리자 페이지</h1>
 
-      <div className="flex gap-1 mb-5 border-b border-[rgba(143,168,181,0.18)]">
+      <div className="flex gap-1 mb-5 border-b border-black/10">
         {[
           { k: "inbox", label: `질문함${pending.length ? ` (${pending.length})` : ""}`, Icon: Inbox },
           { k: "analytics", label: "질문 분석", Icon: BarChart3 },
@@ -80,7 +80,7 @@ export default function AdminDashboard({
             key={t.k}
             onClick={() => setTab(t.k as typeof tab)}
             className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-t-lg border border-b-0 ${
-              tab === t.k ? "bg-[#072431] border-[rgba(143,168,181,0.18)] text-[#FF6B3D]" : "bg-transparent border-transparent text-[#5B7483]"
+              tab === t.k ? "bg-[#FAFAF9] border-black/10 text-[#FF4103]" : "bg-transparent border-transparent text-[#9A9A9A]"
             }`}
           >
             <t.Icon className="w-4 h-4" strokeWidth={2.25} />
@@ -91,25 +91,25 @@ export default function AdminDashboard({
 
       {tab === "inbox" && (
         <div className="flex flex-col gap-4">
-          {questions.length === 0 && <p className="text-sm text-[#5B7483]">아직 들어온 질문이 없어요.</p>}
+          {questions.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 들어온 질문이 없어요.</p>}
           {[...pending, ...answered].map((q) => {
             const p = profileMap.get(q.user_id);
             return (
-              <div key={q.id} className="bg-[#072431] border border-[rgba(143,168,181,0.14)] rounded-xl p-4">
+              <div key={q.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4">
                 <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
-                  <span className="text-sm font-bold text-[#F3EFE8]">{p?.name || "알 수 없음"}{p?.company ? ` · ${p.company}` : ""}</span>
-                  <span className="text-xs text-[#5B7483]">{p?.email}</span>
+                  <span className="text-sm font-bold text-[#111111]">{p?.name || "알 수 없음"}{p?.company ? ` · ${p.company}` : ""}</span>
+                  <span className="text-xs text-[#9A9A9A]">{p?.email}</span>
                 </div>
                 {!q.answer && (
-                  <span className="inline-block text-[10.5px] font-bold text-[#140800] bg-[#FF4103] rounded-full px-2.5 py-0.5 mb-2">
+                  <span className="inline-block text-[10.5px] font-bold text-white bg-[#FF4103] rounded-full px-2.5 py-0.5 mb-2">
                     답변 대기
                   </span>
                 )}
-                <div className="text-[11px] text-[#5B7483] mb-1">{fmt(q.created_at)}</div>
-                <div className="text-sm mb-2 text-[#D7E2E7]">{q.question}</div>
+                <div className="text-[11px] text-[#9A9A9A] mb-1">{fmt(q.created_at)}</div>
+                <div className="text-sm mb-2 text-[#333333]">{q.question}</div>
                 {q.answer ? (
-                  <div className="bg-[rgba(52,211,153,0.1)] border border-[#34D399] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-[#F3EFE8]">
-                    <div className="text-[10.5px] font-bold text-[#34D399] mb-1">보낸 답변 · {fmt(q.answered_at!)}</div>
+                  <div className="bg-[rgba(15,157,88,0.06)] border border-[#0F9D58] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-[#111111]">
+                    <div className="text-[10.5px] font-bold text-[#0F9D58] mb-1">보낸 답변 · {fmt(q.answered_at!)}</div>
                     {q.answer}
                   </div>
                 ) : (
@@ -123,30 +123,30 @@ export default function AdminDashboard({
 
       {tab === "analytics" && (
         <div>
-          <p className="text-sm text-[#8FA8B5] mb-3">
+          <p className="text-sm text-[#6B6B6B] mb-3">
             총 검색 {initialSearchLogs.length}건 · 질문하기 {questions.length}건에서 추출한 자주 등장한 키워드예요.
           </p>
           <div className="flex flex-wrap gap-2">
             {topKeywords.map(([w, c]) => (
-              <span key={w} className="text-xs px-3 py-1.5 rounded-full bg-[#0B2C3C] text-[#D7E2E7] border border-[rgba(143,168,181,0.14)]">
-                {w} <span className="text-[#5B7483]">({c})</span>
+              <span key={w} className="text-xs px-3 py-1.5 rounded-full bg-[#F4F4F2] text-[#333333] border border-black/8">
+                {w} <span className="text-[#9A9A9A]">({c})</span>
               </span>
             ))}
-            {topKeywords.length === 0 && <p className="text-sm text-[#5B7483]">아직 분석할 데이터가 없어요.</p>}
+            {topKeywords.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 분석할 데이터가 없어요.</p>}
           </div>
         </div>
       )}
 
       {tab === "members" && (
         <div className="flex flex-col gap-2">
-          {profiles.length === 0 && <p className="text-sm text-[#5B7483]">아직 가입한 회원이 없어요.</p>}
+          {profiles.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 가입한 회원이 없어요.</p>}
           {profiles.map((p) => (
-            <div key={p.id} className="bg-[#072431] border border-[rgba(143,168,181,0.14)] rounded-xl p-3.5">
+            <div key={p.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-3.5">
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                <span className="text-sm font-bold text-[#F3EFE8]">{p.name}</span>
-                <span className="text-xs text-[#5B7483]">{fmt(p.created_at)} 가입</span>
+                <span className="text-sm font-bold text-[#111111]">{p.name}</span>
+                <span className="text-xs text-[#9A9A9A]">{fmt(p.created_at)} 가입</span>
               </div>
-              <div className="text-xs text-[#8FA8B5] mt-1">
+              <div className="text-xs text-[#6B6B6B] mt-1">
                 {[p.email, p.company, p.role].filter(Boolean).join(" · ")}
               </div>
             </div>
@@ -156,15 +156,15 @@ export default function AdminDashboard({
 
       {tab === "logs" && (
         <div className="flex flex-col gap-2">
-          {initialSearchLogs.length === 0 && <p className="text-sm text-[#5B7483]">아직 검색 기록이 없어요.</p>}
+          {initialSearchLogs.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 검색 기록이 없어요.</p>}
           {initialSearchLogs.map((l) => {
             const p = profileMap.get(l.user_id);
             return (
-              <div key={l.id} className="bg-[#072431] border border-[rgba(143,168,181,0.14)] rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+              <div key={l.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#D7E2E7]">{l.query}</span>
+                  <span className="text-sm text-[#333333]">{l.query}</span>
                 </div>
-                <div className="text-xs text-[#5B7483]">
+                <div className="text-xs text-[#9A9A9A]">
                   {p?.name || "알 수 없음"} · {fmt(l.created_at)}
                 </div>
               </div>
@@ -186,7 +186,7 @@ function ReplyBox({ onSend }: { onSend: (text: string) => void }) {
         onChange={(e) => setText(e.target.value)}
         placeholder="답변을 입력하세요…"
         rows={3}
-        className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+        className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
       />
       <button
         type="button"
@@ -196,7 +196,7 @@ function ReplyBox({ onSend }: { onSend: (text: string) => void }) {
           await onSend(text.trim());
           setBusy(false);
         }}
-        className="self-start inline-flex items-center gap-1.5 bg-[#FF4103] text-[#140800] text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+        className="self-start inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
       >
         <Send className="w-3.5 h-3.5" strokeWidth={2.25} />
         {busy ? "보내는 중…" : "답변 보내기"}

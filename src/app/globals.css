@@ -10,17 +10,18 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 mark {
-  background: rgba(255, 65, 3, 0.35);
-  color: #F3EFE8;
+  background: rgba(255, 65, 3, 0.18);
+  color: #111111;
   border-radius: 3px;
   padding: 0 1px;
+  font-weight: 600;
 }
 
 ::selection {
-  background: rgba(255, 65, 3, 0.4);
-  color: #F3EFE8;
+  background: rgba(255, 65, 3, 0.25);
+  color: #111111;
 }

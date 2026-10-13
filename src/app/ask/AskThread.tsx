@@ -39,28 +39,28 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#5B7483]">
-        이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#8FA8B5]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#6B6B6B]">
+        이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#444444]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-3 flex flex-col gap-4">
           {items.length === 0 && (
-            <p className="text-sm text-[#5B7483] text-center py-10">아직 남긴 질문이 없어요. 아래에 궁금한 걸 적어보세요.</p>
+            <p className="text-sm text-[#9A9A9A] text-center py-10">아직 남긴 질문이 없어요. 아래에 궁금한 걸 적어보세요.</p>
           )}
           {items.map((it) => (
             <div key={it.id} className="flex flex-col gap-2 items-end">
-              <div className="max-w-[85%] bg-[#FF4103] text-[#140800] rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
+              <div className="max-w-[85%] bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
                 {it.question}
               </div>
               {it.answer ? (
-                <div className="max-w-[92%] self-end w-full bg-[#072431] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#F3EFE8]">
-                  <div className="text-[10.5px] font-bold text-[#FF6B3D] mb-1">이드의 답변</div>
+                <div className="max-w-[92%] self-end w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
+                  <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
                   {it.answer}
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs text-[#5B7483]">
+                <div className="flex items-center gap-1.5 text-xs text-[#9A9A9A]">
                   <Clock className="w-3.5 h-3.5" strokeWidth={2} />
                   이드가 확인하고 답변할 예정이에요
                 </div>
@@ -71,7 +71,7 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
         </div>
       </div>
 
-      <form onSubmit={submit} className="border-t border-[rgba(143,168,181,0.18)] bg-[#072431] px-4 sm:px-6 py-3">
+      <form onSubmit={submit} className="border-t border-black/10 bg-white px-4 sm:px-6 py-3">
         <div className="mx-auto w-full max-w-2xl flex gap-2">
           <textarea
             value={text}
@@ -84,12 +84,12 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
             }}
             rows={1}
             placeholder="이드에게 궁금한 걸 남겨보세요…"
-            className="flex-1 border border-[rgba(143,168,181,0.25)] rounded-xl px-4 py-3 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+            className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
           />
           <button
             type="submit"
             disabled={busy}
-            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-[#140800] flex items-center justify-center disabled:opacity-60"
+            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
           >
             <ArrowUp className="w-5 h-5" strokeWidth={2.25} />
           </button>

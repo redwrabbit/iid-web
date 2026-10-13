@@ -8,7 +8,7 @@ export default function SourceIcon({ source }: { source: string }) {
     );
   }
   return (
-    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] inline-block align-text-bottom text-[#FF6B3D]">
+    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] inline-block align-text-bottom text-[#FF4103]">
       <path
         d="M17.5 2.8 6.8 17.2c-.9 1.2-1.9 2-3.3 2.4"
         fill="none"

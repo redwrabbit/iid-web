@@ -91,27 +91,27 @@ export default function LoginPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-[#072431] border border-[rgba(143,168,181,0.18)] rounded-2xl shadow-sm p-7">
-        <div className="w-10 h-10 rounded-lg bg-[#FF4103] text-[#140800] flex items-center justify-center font-serif font-bold mb-4">
+      <div className="w-full max-w-sm bg-white border border-black/12 rounded-2xl shadow-sm p-7">
+        <div className="w-10 h-10 rounded-lg bg-[#FF4103] text-white flex items-center justify-center font-serif font-bold mb-4">
           iid
         </div>
-        <h1 className="text-xl font-bold mb-1 text-[#F3EFE8]">이드에게 물어보기</h1>
-        <p className="text-sm text-[#8FA8B5] mb-5">
+        <h1 className="text-xl font-bold mb-1 text-[#111111]">이드에게 물어보기</h1>
+        <p className="text-sm text-[#6B6B6B] mb-5">
           {mode === "signup" ? "간단한 정보를 알려주시면 바로 시작할 수 있어요." : "다시 오신 걸 환영해요."}
         </p>
 
-        <div className="flex gap-1 mb-5 bg-[#0B2C3C] rounded-full p-1">
+        <div className="flex gap-1 mb-5 bg-[#F4F4F2] rounded-full p-1">
           <button
             type="button"
             onClick={() => setMode("signup")}
-            className={`flex-1 text-sm font-semibold py-2 rounded-full ${mode === "signup" ? "bg-[#FF4103] text-[#140800]" : "text-[#8FA8B5]"}`}
+            className={`flex-1 text-sm font-semibold py-2 rounded-full ${mode === "signup" ? "bg-[#FF4103] text-white" : "text-[#6B6B6B]"}`}
           >
             가입하기
           </button>
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`flex-1 text-sm font-semibold py-2 rounded-full ${mode === "login" ? "bg-[#FF4103] text-[#140800]" : "text-[#8FA8B5]"}`}
+            className={`flex-1 text-sm font-semibold py-2 rounded-full ${mode === "login" ? "bg-[#FF4103] text-white" : "text-[#6B6B6B]"}`}
           >
             로그인
           </button>
@@ -123,14 +123,14 @@ export default function LoginPage() {
             placeholder="이메일 *"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2.5 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+            className="border border-black/15 rounded-lg px-3 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
           />
           <input
             type="password"
             placeholder="비밀번호 * (6자 이상)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2.5 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+            className="border border-black/15 rounded-lg px-3 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
           />
           {mode === "signup" && (
             <>
@@ -139,32 +139,32 @@ export default function LoginPage() {
                 placeholder="이름 *"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2.5 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+                className="border border-black/15 rounded-lg px-3 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
               />
               <input
                 type="text"
                 placeholder="회사 (선택)"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2.5 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+                className="border border-black/15 rounded-lg px-3 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
               />
               <input
                 type="text"
                 placeholder="직무 (선택)"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="border border-[rgba(143,168,181,0.25)] rounded-lg px-3 py-2.5 text-sm bg-[#001621] text-[#F3EFE8] placeholder:text-[#5B7483] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+                className="border border-black/15 rounded-lg px-3 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
               />
             </>
           )}
 
-          {error && <div className="text-xs text-[#FF6B6B]">{error}</div>}
-          {notice && <div className="text-xs text-[#34D399]">{notice}</div>}
+          {error && <div className="text-xs text-[#DC2626]">{error}</div>}
+          {notice && <div className="text-xs text-[#0F9D58]">{notice}</div>}
 
           <button
             type="submit"
             disabled={busy}
-            className="mt-1 bg-[#FF4103] text-[#140800] font-bold rounded-lg py-2.5 text-sm disabled:opacity-60"
+            className="mt-1 bg-[#FF4103] text-white font-bold rounded-lg py-2.5 text-sm disabled:opacity-60"
           >
             {busy ? "처리 중…" : mode === "signup" ? "가입하고 시작하기" : "로그인"}
           </button>
