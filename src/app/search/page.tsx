@@ -2,12 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ExternalLink, Info, Search, X } from "lucide-react";
-import { CATEGORY_LIST, SUBCATEGORY_LIST, makeSnippet, Post, SearchIndex } from "@/lib/search";
+import { CATEGORY_LIST, SUBCATEGORY_LIST, Post, SearchIndex } from "@/lib/search";
 import { createClient } from "@/lib/supabase/client";
 import SourceIcon from "@/components/SourceIcon";
 
-function year(date: string) {
-  return (date.match(/\d{4}/) || [""])[0];
+const MONTHS: Record<string, number> = {
+  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+};
+
+function formatDate(date: string) {
+  const ymd = date.match(/^(\d{4})\.\s*(\d{1,2})\.\s*\d{1,2}\.?$/);
+  if (ymd) return `${ymd[1]}년 ${parseInt(ymd[2], 10)}월`;
+  const mdy = date.match(/^([A-Za-z]{3})\s+\d{1,2}\.\s*(\d{4})$/);
+  if (mdy && MONTHS[mdy[1]]) return `${mdy[2]}년 ${MONTHS[mdy[1]]}월`;
+  const y = (date.match(/\d{4}/) || [""])[0];
+  return y ? `${y}년` : "";
+}
+
+function cleanTitle(title: string) {
+  return title.replace(/#[^\s#]+/g, "").trim().replace(/\s{2,}/g, " ");
 }
 
 export default function SearchPage() {
@@ -176,7 +190,7 @@ export default function SearchPage() {
         )}
 
         <div className="min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
-          <div className="max-w-2xl">
+          <div className="max-w-3xl">
             {!posts ? (
               <p className="text-sm text-[#9A9A9A]">이드의 글을 불러오는 중…</p>
             ) : (
@@ -193,27 +207,29 @@ export default function SearchPage() {
                         <span className="shrink-0 pt-0.5">
                           <SourceIcon source={r.post.source} />
                         </span>
-                        <span className="shrink-0 w-9 pt-0.5 text-xs text-[#9A9A9A] tabular-nums">{year(r.post.date)}</span>
-                        <span className="flex-1 min-w-0 font-serif font-semibold text-[14.5px] leading-snug text-[#111111] line-clamp-2">
-                          {r.post.title}
+                        <span className="shrink-0 w-[72px] pt-0.5 text-xs text-[#9A9A9A] tabular-nums whitespace-nowrap">
+                          {formatDate(r.post.date)}
                         </span>
-                        <div className="shrink-0 flex items-center gap-0.5">
+                        <span className="flex-1 min-w-0 font-sans font-semibold text-[14.5px] leading-snug text-[#111111] line-clamp-2">
+                          {cleanTitle(r.post.title)}
+                        </span>
+                        <div className="shrink-0 flex items-center justify-end gap-2">
                           <button
                             type="button"
                             onClick={() => setSummary({ post: r.post, qTokens: r.qTokens })}
                             aria-label="요약 보기"
-                            className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                            className="p-2.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
                           >
-                            <Info className="w-4 h-4" strokeWidth={2} />
+                            <Info className="w-5 h-5" strokeWidth={2} />
                           </button>
                           <a
                             href={r.post.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="원문으로 이동"
-                            className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                            className="p-2.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
                           >
-                            <ExternalLink className="w-4 h-4" strokeWidth={2} />
+                            <ExternalLink className="w-5 h-5" strokeWidth={2} />
                           </a>
                         </div>
                       </li>
@@ -235,7 +251,7 @@ export default function SearchPage() {
             <div className="flex items-start justify-between gap-3 mb-3">
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#FF4103]">
                 <SourceIcon source={summary.post.source} />
-                {summary.post.source} · {year(summary.post.date)} · {summary.post.category}
+                {summary.post.source} · {formatDate(summary.post.date)} · {summary.post.category}
               </span>
               <button
                 type="button"
@@ -246,17 +262,13 @@ export default function SearchPage() {
                 <X className="w-4 h-4" strokeWidth={2} />
               </button>
             </div>
-            <h3 className="font-serif font-bold text-[16px] text-[#111111] mb-2 leading-snug">{summary.post.title}</h3>
-            {summary.qTokens.length ? (
-              <p
-                className="text-[13.5px] leading-relaxed text-[#555555]"
-                dangerouslySetInnerHTML={{ __html: makeSnippet(summary.post, summary.qTokens) }}
-              />
-            ) : (
-              <p className="text-[13.5px] leading-relaxed text-[#555555] whitespace-pre-line">
-                {(summary.post.text || "").slice(0, 380)}…
-              </p>
-            )}
+            <h3 className="font-sans font-bold text-[16px] text-[#111111] mb-3 leading-snug">
+              {cleanTitle(summary.post.title)}
+            </h3>
+            <p className="text-xs font-semibold text-[#9A9A9A] mb-1">요약</p>
+            <p className="text-[13.5px] leading-relaxed text-[#555555] whitespace-pre-line">
+              {(summary.post.text || "").slice(0, 300)}…
+            </p>
             <a
               href={summary.post.url}
               target="_blank"
