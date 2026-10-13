@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+mark {
+  background: #F4D888;
+  color: #12262F;
+  border-radius: 3px;
+  padding: 0 1px;
+}
