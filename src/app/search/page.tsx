@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, ExternalLink, Info, Search, X } from "lucide-react";
+import { ArrowRight, ExternalLink, Search, X } from "lucide-react";
 import { CATEGORY_LIST, SUBCATEGORY_LIST, Post, SearchIndex } from "@/lib/search";
 import { createClient } from "@/lib/supabase/client";
 import SourceIcon from "@/components/SourceIcon";
@@ -203,11 +203,12 @@ export default function SearchPage() {
                 ) : (
                   <ul className="flex flex-col divide-y divide-black/8 border-y border-black/8">
                     {results.map((r) => (
-                      <li key={r.post.id} className="flex items-start gap-3 py-3.5">
-                        <span className="shrink-0 pt-0.5">
+                      <li key={r.post.id} className="flex items-center gap-5 py-2.5">
+                        <span className="shrink-0 w-[68px] flex items-center gap-1.5">
                           <SourceIcon source={r.post.source} />
+                          <span className="text-[11px] text-[#9A9A9A]">{r.post.source}</span>
                         </span>
-                        <span className="shrink-0 w-[72px] pt-0.5 text-xs text-[#9A9A9A] tabular-nums whitespace-nowrap">
+                        <span className="shrink-0 w-[72px] text-xs text-[#9A9A9A] tabular-nums whitespace-nowrap">
                           {formatDate(r.post.date)}
                         </span>
                         <span className="flex-1 min-w-0 font-sans font-semibold text-[14.5px] leading-snug text-[#111111] line-clamp-2">
@@ -218,9 +219,9 @@ export default function SearchPage() {
                             type="button"
                             onClick={() => setSummary({ post: r.post, qTokens: r.qTokens })}
                             aria-label="요약 보기"
-                            className="p-2.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                            className="px-3 py-2 rounded-md text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
                           >
-                            <Info className="w-5 h-5" strokeWidth={2} />
+                            요약
                           </button>
                           <a
                             href={r.post.url}
