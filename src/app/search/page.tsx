@@ -267,7 +267,7 @@ export default function SearchPage() {
             </h3>
             <p className="text-xs font-semibold text-[#9A9A9A] mb-1">요약</p>
             <p className="text-[13.5px] leading-relaxed text-[#555555] whitespace-pre-line">
-              {(summary.post.text || "").slice(0, 300)}…
+              {summary.post.summary || (summary.post.text || "").slice(0, 300) + "…"}
             </p>
             <a
               href={summary.post.url}

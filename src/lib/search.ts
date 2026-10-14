@@ -9,6 +9,7 @@ export type Post = {
   source: string;
   category: string;
   subcategory: string;
+  summary?: string;
 };
 
 type IndexedPost = Post & {
