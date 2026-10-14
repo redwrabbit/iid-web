@@ -16,6 +16,8 @@ function formatDate(date: string) {
   if (ymd) return `${ymd[1]}년 ${parseInt(ymd[2], 10)}월`;
   const mdy = date.match(/^([A-Za-z]{3})\s+\d{1,2}\.\s*(\d{4})$/);
   if (mdy && MONTHS[mdy[1]]) return `${mdy[2]}년 ${MONTHS[mdy[1]]}월`;
+  const iso = date.match(/^(\d{4})-(\d{2})-\d{2}/);
+  if (iso) return `${iso[1]}년 ${parseInt(iso[2], 10)}월`;
   const y = (date.match(/\d{4}/) || [""])[0];
   return y ? `${y}년` : "";
 }
@@ -36,7 +38,30 @@ export default function SearchPage() {
   useEffect(() => {
     fetch("/data/corpus.json")
       .then((r) => r.json())
-      .then(setPosts)
+      .then((corpus: Post[]) => {
+        setPosts(corpus);
+        const supabase = createClient();
+        supabase
+          .from("resources")
+          .select("id, title, url, category, subcategory, content, created_at")
+          .order("created_at", { ascending: false })
+          .then(({ data }) => {
+            if (!data || !data.length) return;
+            const extra: Post[] = data.map((r) => ({
+              id: `r_${r.id}`,
+              title: r.title,
+              url: r.url || "",
+              date: r.created_at,
+              series: "관리자 자료",
+              keywords: "",
+              text: r.content,
+              source: "자료",
+              category: r.category,
+              subcategory: r.subcategory || "",
+            }));
+            setPosts((prev) => [...extra, ...(prev || [])]);
+          });
+      })
       .catch(() => setPosts([]));
   }, []);
 

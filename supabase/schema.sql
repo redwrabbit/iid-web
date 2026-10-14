@@ -72,3 +72,29 @@ create policy "users insert own profile" on public.profiles
 create policy "admin reads all profiles" on public.profiles
   for select to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 관리자가 "HR 지식 검색"에 추가로 올리는 자료(링크/텍스트). 모두가 검색할 수 있고, 관리자만 추가/삭제합니다.
+create table if not exists public.resources (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  url text,
+  category text not null default '기타',
+  subcategory text not null default '',
+  content text not null default '',
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+
+alter table public.resources enable row level security;
+
+create policy "anyone reads resources" on public.resources
+  for select to anon, authenticated
+  using (true);
+
+create policy "admin inserts resources" on public.resources
+  for insert to authenticated
+  with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+create policy "admin deletes resources" on public.resources
+  for delete to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
