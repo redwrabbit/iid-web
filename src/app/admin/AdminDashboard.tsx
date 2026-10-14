@@ -4,7 +4,6 @@ import { ChangeEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BarChart3, Users, History, FileUp, Trash2, Plus, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CATEGORY_LIST, SUBCATEGORY_LIST } from "@/lib/search";
 
 type Question = {
   id: string;
@@ -23,10 +22,9 @@ type Resource = {
   category: string;
   subcategory: string;
   content: string;
+  summary: string;
   created_at: string;
 };
-
-const RESOURCE_CATEGORIES = CATEGORY_LIST.filter((c) => c !== "전체");
 
 function fmt(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -174,61 +172,47 @@ function ResourcesTab({
   onAdd: (r: Resource) => void;
   onDelete: (id: string) => void;
 }) {
-  const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
-  const [category, setCategory] = useState(RESOURCE_CATEGORIES[0]);
-  const [subcategory, setSubcategory] = useState("");
-  const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const subs = SUBCATEGORY_LIST[category] || [];
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!/\.(txt|md)$/i.test(file.name)) {
-      setError("텍스트 파일(.txt, .md)만 읽어올 수 있어요. 다른 형식은 내용을 복사해서 붙여넣어 주세요.");
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!/\.(pdf|docx)$/i.test(f.name)) {
+      setError("워드(.docx) 또는 PDF 파일만 올릴 수 있어요.");
       return;
     }
     setError("");
-    const reader = new FileReader();
-    reader.onload = () => setContent((reader.result as string) || "");
-    reader.readAsText(file, "utf-8");
+    setFile(f);
   }
 
   async function submit() {
-    if (!title.trim() || !content.trim()) {
-      setError("제목과 내용은 꼭 입력해 주세요.");
+    if (!url.trim() && !file) {
+      setError("링크나 파일 중 하나는 올려주세요.");
       return;
     }
     setBusy(true);
     setError("");
-    const supabase = createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error: err } = await supabase
-      .from("resources")
-      .insert({
-        title: title.trim(),
-        url: url.trim() || null,
-        category,
-        subcategory,
-        content: content.trim(),
-        created_by: userData.user?.id,
-      })
-      .select("id, title, url, category, subcategory, content, created_at")
-      .single();
-    setBusy(false);
-    if (err || !data) {
-      setError("저장하지 못했어요: " + (err?.message || "알 수 없는 오류"));
-      return;
+    const fd = new FormData();
+    if (url.trim()) fd.set("url", url.trim());
+    if (file) fd.set("file", file);
+
+    try {
+      const res = await fetch("/api/admin/resources", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "분석에 실패했어요.");
+      onAdd(json.resource);
+      setUrl("");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류예요.");
+    } finally {
+      setBusy(false);
     }
-    onAdd(data);
-    setTitle("");
-    setUrl("");
-    setSubcategory("");
-    setContent("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function remove(id: string) {
@@ -247,59 +231,21 @@ function ResourcesTab({
       <div className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4 flex flex-col gap-3">
         <p className="text-sm font-bold text-[#111111]">새 자료 추가</p>
         <p className="text-xs text-[#9A9A9A] -mt-1">
-          여기서 추가한 자료는 바로 HR 지식 검색에 노출돼요. 링크만 남기거나, 본문 내용을 붙여넣거나 텍스트 파일(.txt, .md)을 불러와 검색되게 할 수 있어요.
+          링크나 워드/PDF 파일만 올리면 제목·분류·요약을 AI가 자동으로 만들어서 HR 지식 검색에 바로 추가해요.
         </p>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="제목 *"
-          className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-        />
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="원문 링크 (선택)"
+          placeholder="원문 링크 (예: https://...)"
           className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
         />
-        <div className="flex gap-2 flex-wrap">
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setSubcategory("");
-            }}
-            className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-          >
-            {RESOURCE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          {subs.length > 0 && (
-            <select
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-            >
-              <option value="">중분류 선택 안 함</option>
-              {subs.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          )}
-        </div>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="본문 내용 * (검색과 요약에 사용돼요)"
-          rows={6}
-          className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-        />
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <label className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#555555] cursor-pointer hover:text-[#FF4103]">
-            <FileUp className="w-4 h-4" strokeWidth={2.25} />
-            텍스트 파일 불러오기
-            <input ref={fileInputRef} type="file" accept=".txt,.md" onChange={handleFile} className="hidden" />
-          </label>
+        <p className="text-center text-xs text-[#B0B0B0]">또는</p>
+        <label className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#555555] cursor-pointer hover:text-[#FF4103] border border-dashed border-black/20 rounded-lg px-3 py-2.5 justify-center">
+          <FileUp className="w-4 h-4" strokeWidth={2.25} />
+          {file ? file.name : "워드(.docx) 또는 PDF 파일 선택"}
+          <input ref={fileInputRef} type="file" accept=".pdf,.docx" onChange={handleFile} className="hidden" />
+        </label>
+        <div className="flex items-center justify-end gap-3 flex-wrap">
           <button
             type="button"
             disabled={busy}
@@ -307,7 +253,7 @@ function ResourcesTab({
             className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             <Plus className="w-4 h-4" strokeWidth={2.25} />
-            {busy ? "추가하는 중…" : "자료 추가"}
+            {busy ? "분석 중…" : "자료 분석하고 추가"}
           </button>
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
@@ -325,7 +271,7 @@ function ResourcesTab({
                   {r.category}{r.subcategory ? ` · ${r.subcategory}` : ""}
                 </span>
               </div>
-              <p className="text-xs text-[#6B6B6B] line-clamp-2">{r.content}</p>
+              <p className="text-xs text-[#6B6B6B] line-clamp-2">{r.summary || r.content}</p>
               {r.url && (
                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#FF4103] hover:underline">
                   {r.url}

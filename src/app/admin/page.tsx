@@ -16,7 +16,7 @@ export default async function AdminPage() {
     supabase.from("questions").select("id, user_id, question, answer, answered_at, created_at").order("created_at", { ascending: false }),
     supabase.from("search_logs").select("id, user_id, query, created_at").order("created_at", { ascending: false }).limit(300),
     supabase.from("profiles").select("id, email, name, company, role, created_at").order("created_at", { ascending: false }),
-    supabase.from("resources").select("id, title, url, category, subcategory, content, created_at").order("created_at", { ascending: false }),
+    supabase.from("resources").select("id, title, url, category, subcategory, content, summary, created_at").order("created_at", { ascending: false }),
   ]);
 
   return (

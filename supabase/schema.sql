@@ -102,6 +102,9 @@ create policy "admin deletes resources" on public.resources
   for delete to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
 
+-- 자료의 AI 분석 요약 (링크/파일 업로드 시 자동 생성)
+alter table public.resources add column if not exists summary text not null default '';
+
 -- "이드에게 질문하기"에서 올리는 이미지/파일 첨부용 Storage 버킷
 insert into storage.buckets (id, name, public)
   values ('attachments', 'attachments', true)

@@ -43,7 +43,7 @@ export default function SearchPage() {
         const supabase = createClient();
         supabase
           .from("resources")
-          .select("id, title, url, category, subcategory, content, created_at")
+          .select("id, title, url, category, subcategory, content, summary, created_at")
           .order("created_at", { ascending: false })
           .then(({ data }) => {
             if (!data || !data.length) return;
@@ -58,6 +58,7 @@ export default function SearchPage() {
               source: "자료",
               category: r.category,
               subcategory: r.subcategory || "",
+              summary: r.summary || undefined,
             }));
             setPosts((prev) => [...extra, ...(prev || [])]);
           });
