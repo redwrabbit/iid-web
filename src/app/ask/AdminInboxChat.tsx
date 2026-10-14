@@ -1,15 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Send, Clock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AttachmentView, type Question } from "./AskThread";
 
 type Profile = { id: string; email: string; name: string; company: string | null; role: string | null };
 export type AdminQuestion = Question & { user_id: string };
 
+type ChatMsg = { key: string; sender: "user" | "admin"; text: string; attachments?: Question["attachments"]; time: string };
+
+const GROUP_GAP_MS = 10 * 60 * 1000;
+const LAST_VIEWED_KEY = "iid_admin_inbox_last_viewed";
+
 function fmt(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function loadLastViewed(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(LAST_VIEWED_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function topUserId(list: AdminQuestion[]): string | null {
+  const byUser = new Map<string, number>();
+  for (const q of list) byUser.set(q.user_id, (byUser.get(q.user_id) || 0) + (q.answer ? 0 : 1));
+  let best: string | null = null;
+  let bestPending = -1;
+  for (const [userId, pending] of byUser) {
+    if (pending > bestPending) {
+      best = userId;
+      bestPending = pending;
+    }
+  }
+  return best;
 }
 
 export default function AdminInboxChat({
@@ -21,6 +49,30 @@ export default function AdminInboxChat({
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  // Starts empty on both server and client so the first client render matches
+  // the server-rendered HTML; localStorage is only readable after mount.
+  const [lastViewed, setLastViewed] = useState<Record<string, string>>({});
+
+  function markSeen(userId: string) {
+    const now = new Date().toISOString();
+    setLastViewed((prev) => {
+      const next = { ...prev, [userId]: now };
+      try {
+        localStorage.setItem(LAST_VIEWED_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    const loaded = loadLastViewed();
+    const top = topUserId(initialQuestions);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from localStorage, a browser-only external store
+    setLastViewed(top ? { ...loaded, [top]: new Date().toISOString() } : loaded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const threads = useMemo(() => {
     const byUser = new Map<string, AdminQuestion[]>();
@@ -33,16 +85,43 @@ export default function AdminInboxChat({
       .map(([userId, list]) => {
         const sorted = [...list].sort((a, b) => a.created_at.localeCompare(b.created_at));
         const pending = sorted.filter((q) => !q.answer).length;
+        const seenAt = lastViewed[userId];
+        const unseenPending = sorted.filter((q) => !q.answer && (!seenAt || q.created_at > seenAt)).length;
         const last = sorted[sorted.length - 1];
-        return { userId, items: sorted, pending, lastAt: last?.created_at || "" };
+        return { userId, items: sorted, pending, unseenPending, lastAt: last?.created_at || "" };
       })
       .sort((a, b) => (a.pending !== b.pending ? b.pending - a.pending : b.lastAt.localeCompare(a.lastAt)));
-  }, [questions]);
+  }, [questions, lastViewed]);
 
   const [selected, setSelected] = useState<string | null>(null);
   const activeId = selected ?? threads[0]?.userId ?? null;
   const active = threads.find((t) => t.userId === activeId);
   const activeProfile = activeId ? profileMap.get(activeId) : undefined;
+
+  function selectThread(userId: string) {
+    setSelected(userId);
+    markSeen(userId);
+  }
+
+  const chatMsgs = useMemo<ChatMsg[]>(() => {
+    if (!active) return [];
+    const msgs: ChatMsg[] = [];
+    const seenAnswers = new Set<string>();
+    for (const it of active.items) {
+      if (it.question || (it.attachments && it.attachments.length > 0)) {
+        msgs.push({ key: it.id + "-q", sender: "user", text: it.question, attachments: it.attachments, time: it.created_at });
+      }
+      if (it.answer) {
+        // 한 번에 여러 건에 같은 답변을 보내면 answer/answered_at이 동일하므로 하나로 합침
+        const dedupeKey = `${it.answered_at || it.created_at}__${it.answer}`;
+        if (!seenAnswers.has(dedupeKey)) {
+          seenAnswers.add(dedupeKey);
+          msgs.push({ key: it.id + "-a", sender: "admin", text: it.answer, time: it.answered_at || it.created_at });
+        }
+      }
+    }
+    return msgs.sort((a, b) => a.time.localeCompare(b.time));
+  }, [active]);
 
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
@@ -85,14 +164,14 @@ export default function AdminInboxChat({
             <button
               key={t.userId}
               type="button"
-              onClick={() => setSelected(t.userId)}
+              onClick={() => selectThread(t.userId)}
               className={`w-full text-left px-4 py-3 border-b border-black/8 ${activeThread ? "bg-[rgba(255,65,3,0.08)]" : "hover:bg-[#F4F4F2]"}`}
             >
               <div className="flex items-center justify-between gap-2 mb-0.5">
                 <span className="text-sm font-bold text-[#111111] truncate">{p?.name || "알 수 없음"}</span>
-                {t.pending > 0 && (
+                {t.unseenPending > 0 && (
                   <span className="shrink-0 text-[10px] font-bold text-white bg-[#FF4103] rounded-full px-1.5 py-0.5">
-                    {t.pending}
+                    {t.unseenPending}
                   </span>
                 )}
               </div>
@@ -113,38 +192,38 @@ export default function AdminInboxChat({
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-4">
-              {active.items.map((it) => (
-                <div key={it.id} className="flex flex-col gap-2">
-                  <div className="flex flex-col gap-2 items-start max-w-[85%]">
-                    {it.question && (
-                      <div className="bg-[#F4F4F2] text-[#111111] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm whitespace-pre-wrap">
-                        {it.question}
-                      </div>
-                    )}
-                    {it.attachments && it.attachments.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {it.attachments.map((a, i) => (
-                          <div key={i} className="bg-[#F4F4F2] rounded-xl px-2.5 py-2 text-[#111111]">
-                            <AttachmentView a={a} />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="text-[10.5px] text-[#B0B0B0]">{fmt(it.created_at)}</div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-1.5">
+              {chatMsgs.map((m, i) => {
+                const prev = chatMsgs[i - 1];
+                const showTime = !prev || new Date(m.time).getTime() - new Date(prev.time).getTime() > GROUP_GAP_MS;
+                return (
+                  <div key={m.key} className="flex flex-col gap-1.5">
+                    {showTime && <div className="text-center text-[10.5px] text-[#B0B0B0] py-1">{fmt(m.time)}</div>}
+                    <div className={`flex flex-col gap-1.5 max-w-[85%] ${m.sender === "admin" ? "self-end items-end" : "items-start"}`}>
+                      {m.text && (
+                        <div
+                          className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                            m.sender === "admin"
+                              ? "bg-[#FF4103] text-white rounded-br-md"
+                              : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
+                          }`}
+                        >
+                          {m.text}
+                        </div>
+                      )}
+                      {m.attachments && m.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {m.attachments.map((a, j) => (
+                            <div key={j} className="bg-[#F4F4F2] rounded-xl px-2.5 py-2 text-[#111111]">
+                              <AttachmentView a={a} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {it.answer ? (
-                    <div className="max-w-[85%] self-end bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap">
-                      {it.answer}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-[#9A9A9A]">
-                      <Clock className="w-3.5 h-3.5" strokeWidth={2} />
-                      답변 대기 중
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t border-black/10 px-5 py-3">
