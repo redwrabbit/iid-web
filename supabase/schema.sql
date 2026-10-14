@@ -31,6 +31,9 @@ create policy "admin updates questions" on public.questions
   for update to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
 
+-- 질문에 첨부한 이미지/파일 (url/name/type의 배열)
+alter table public.questions add column if not exists attachments jsonb not null default '[]'::jsonb;
+
 -- "HR 지식 검색" 탭에서 남긴 검색어 로그 (관리자만 조회)
 create table if not exists public.search_logs (
   id uuid primary key default gen_random_uuid(),
@@ -98,3 +101,16 @@ create policy "admin inserts resources" on public.resources
 create policy "admin deletes resources" on public.resources
   for delete to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- "이드에게 질문하기"에서 올리는 이미지/파일 첨부용 Storage 버킷
+insert into storage.buckets (id, name, public)
+  values ('attachments', 'attachments', true)
+  on conflict (id) do nothing;
+
+create policy "anyone reads attachments" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'attachments');
+
+create policy "users upload own attachments" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'attachments' and (storage.foldername(name))[1] = auth.uid()::text);

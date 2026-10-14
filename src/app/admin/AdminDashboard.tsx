@@ -1,7 +1,8 @@
 "use client";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
-import { Inbox, BarChart3, Users, History, Send, FileUp, Trash2, Plus } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, Users, History, FileUp, Trash2, Plus, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORY_LIST, SUBCATEGORY_LIST } from "@/lib/search";
 
@@ -54,26 +55,12 @@ export default function AdminDashboard({
   profiles: Profile[];
   initialResources: Resource[];
 }) {
-  const [tab, setTab] = useState<"inbox" | "analytics" | "members" | "logs" | "resources">("inbox");
-  const [questions, setQuestions] = useState(initialQuestions);
+  const [tab, setTab] = useState<"analytics" | "resources" | "members" | "logs">("analytics");
+  const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
-  const pending = questions.filter((q) => !q.answer);
-  const answered = questions.filter((q) => q.answer);
-
-  async function sendReply(id: string, text: string) {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("questions")
-      .update({ answer: text, answered_at: new Date().toISOString() })
-      .eq("id", id);
-    if (!error) {
-      setQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, answer: text, answered_at: new Date().toISOString() } : q)));
-    } else {
-      alert("답변을 저장하지 못했어요: " + error.message);
-    }
-  }
+  const pendingCount = questions.filter((q) => !q.answer).length;
 
   const topKeywords = useMemo(
     () => keywordCounts([...initialSearchLogs.map((l) => l.query), ...questions.map((q) => q.question)]),
@@ -82,11 +69,21 @@ export default function AdminDashboard({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-6 flex-1">
-      <h1 className="text-xl font-bold mb-5 text-[#111111]">관리자 페이지</h1>
+      <h1 className="text-xl font-bold mb-2 text-[#111111]">관리자 페이지</h1>
+
+      <Link
+        href="/ask"
+        className="flex items-center justify-between gap-3 mb-5 bg-[rgba(255,65,3,0.06)] border border-[rgba(255,65,3,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(255,65,3,0.1)]"
+      >
+        <span className="text-sm font-semibold text-[#111111]">
+          질문함은 이드에게 질문하기 탭에서 확인·답변해요
+          {pendingCount > 0 && <span className="ml-2 text-[11px] font-bold text-white bg-[#FF4103] rounded-full px-2 py-0.5">답변 대기 {pendingCount}</span>}
+        </span>
+        <ArrowRight className="w-4 h-4 text-[#FF4103] shrink-0" strokeWidth={2.25} />
+      </Link>
 
       <div className="flex gap-1 mb-5 border-b border-black/10">
         {[
-          { k: "inbox", label: `질문함${pending.length ? ` (${pending.length})` : ""}`, Icon: Inbox },
           { k: "analytics", label: "질문 분석", Icon: BarChart3 },
           { k: "resources", label: "자료 추가", Icon: FileUp },
           { k: "members", label: "회원", Icon: Users },
@@ -104,38 +101,6 @@ export default function AdminDashboard({
           </button>
         ))}
       </div>
-
-      {tab === "inbox" && (
-        <div className="flex flex-col gap-4">
-          {questions.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 들어온 질문이 없어요.</p>}
-          {[...pending, ...answered].map((q) => {
-            const p = profileMap.get(q.user_id);
-            return (
-              <div key={q.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4">
-                <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
-                  <span className="text-sm font-bold text-[#111111]">{p?.name || "알 수 없음"}{p?.company ? ` · ${p.company}` : ""}</span>
-                  <span className="text-xs text-[#9A9A9A]">{p?.email}</span>
-                </div>
-                {!q.answer && (
-                  <span className="inline-block text-[10.5px] font-bold text-white bg-[#FF4103] rounded-full px-2.5 py-0.5 mb-2">
-                    답변 대기
-                  </span>
-                )}
-                <div className="text-[11px] text-[#9A9A9A] mb-1">{fmt(q.created_at)}</div>
-                <div className="text-sm mb-2 text-[#333333]">{q.question}</div>
-                {q.answer ? (
-                  <div className="bg-[rgba(15,157,88,0.06)] border border-[#0F9D58] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-[#111111]">
-                    <div className="text-[10.5px] font-bold text-[#0F9D58] mb-1">보낸 답변 · {fmt(q.answered_at!)}</div>
-                    {q.answer}
-                  </div>
-                ) : (
-                  <ReplyBox onSend={(text) => sendReply(q.id, text)} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {tab === "analytics" && (
         <div>
@@ -382,31 +347,3 @@ function ResourcesTab({
   );
 }
 
-function ReplyBox({ onSend }: { onSend: (text: string) => void }) {
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className="flex flex-col gap-2 mt-1">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="답변을 입력하세요…"
-        rows={3}
-        className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-      />
-      <button
-        type="button"
-        disabled={busy || !text.trim()}
-        onClick={async () => {
-          setBusy(true);
-          await onSend(text.trim());
-          setBusy(false);
-        }}
-        className="self-start inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
-      >
-        <Send className="w-3.5 h-3.5" strokeWidth={2.25} />
-        {busy ? "보내는 중…" : "답변 보내기"}
-      </button>
-    </div>
-  );
-}

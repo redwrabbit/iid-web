@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowUp, Clock } from "lucide-react";
+import { ArrowUp, Clock, Paperclip, X, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+export type Attachment = { url: string; name: string; type: string };
 
 export type Question = {
   id: string;
@@ -10,30 +12,96 @@ export type Question = {
   answer: string | null;
   answered_at: string | null;
   created_at: string;
+  attachments?: Attachment[];
 };
+
+const MAX_FILES = 3;
+const MAX_SIZE = 8 * 1024 * 1024; // 8MB
+
+export function AttachmentView({ a }: { a: Attachment }) {
+  if (a.type.startsWith("image/")) {
+    return (
+      <a href={a.url} target="_blank" rel="noopener noreferrer">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={a.url} alt={a.name} className="max-w-[200px] max-h-[200px] rounded-lg border border-black/10 object-cover" />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={a.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-xs underline underline-offset-2 opacity-90"
+    >
+      <FileText className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+      {a.name}
+    </a>
+  );
+}
 
 export default function AskThread({ initialQuestions, userId }: { initialQuestions: Question[]; userId: string }) {
   const [items, setItems] = useState<Question[]>(initialQuestions);
   const [text, setText] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const next = [...files];
+    for (const f of Array.from(list)) {
+      if (next.length >= MAX_FILES) break;
+      if (f.size > MAX_SIZE) {
+        setError(`${f.name}은(는) 8MB를 넘어서 첨부할 수 없어요.`);
+        continue;
+      }
+      next.push(f);
+    }
+    setFiles(next);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const q = text.trim();
-    if (!q || busy) return;
+    if ((!q && files.length === 0) || busy) return;
     setBusy(true);
-    setText("");
+    setError("");
     const supabase = createClient();
-    const { data, error } = await supabase
+
+    let attachments: Attachment[] = [];
+    try {
+      attachments = await Promise.all(
+        files.map(async (f) => {
+          const path = `${userId}/${Date.now()}-${f.name}`;
+          const { error: upErr } = await supabase.storage.from("attachments").upload(path, f);
+          if (upErr) throw upErr;
+          const { data: pub } = supabase.storage.from("attachments").getPublicUrl(path);
+          return { url: pub.publicUrl, name: f.name, type: f.type || "application/octet-stream" };
+        })
+      );
+    } catch (err) {
+      setBusy(false);
+      setError("파일을 올리지 못했어요: " + (err instanceof Error ? err.message : "알 수 없는 오류"));
+      return;
+    }
+
+    const { data, error: insErr } = await supabase
       .from("questions")
-      .insert({ user_id: userId, question: q })
-      .select("id, question, answer, answered_at, created_at")
+      .insert({ user_id: userId, question: q, attachments })
+      .select("id, question, answer, answered_at, created_at, attachments")
       .single();
     setBusy(false);
-    if (!error && data) {
+    if (!insErr && data) {
       setItems((prev) => [...prev, data as Question]);
+      setText("");
+      setFiles([]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    } else if (insErr) {
+      setError("질문을 보내지 못했어요: " + insErr.message);
     }
   }
 
@@ -51,8 +119,21 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
           )}
           {items.map((it) => (
             <div key={it.id} className="flex flex-col gap-2 items-end">
-              <div className="max-w-[85%] bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
-                {it.question}
+              <div className="max-w-[85%] flex flex-col gap-2 items-end">
+                {it.question && (
+                  <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
+                    {it.question}
+                  </div>
+                )}
+                {it.attachments && it.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {it.attachments.map((a, i) => (
+                      <div key={i} className="bg-[#FF4103] text-white rounded-xl px-2.5 py-2">
+                        <AttachmentView a={a} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {it.answer ? (
                 <div className="max-w-[92%] self-end w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
@@ -72,27 +153,61 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
       </div>
 
       <form onSubmit={submit} className="border-t border-black/10 bg-white px-4 sm:px-6 py-3">
-        <div className="mx-auto w-full max-w-2xl flex gap-2">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit(e);
-              }
-            }}
-            rows={1}
-            placeholder="이드에게 궁금한 걸 남겨보세요…"
-            className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
-          >
-            <ArrowUp className="w-5 h-5" strokeWidth={2.25} />
-          </button>
+        <div className="mx-auto w-full max-w-2xl flex flex-col gap-2">
+          {files.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {files.map((f, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 text-xs bg-[#F4F4F2] border border-black/10 rounded-full pl-3 pr-1.5 py-1 text-[#333333]"
+                >
+                  {f.name}
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                    aria-label="첨부 제거"
+                    className="p-0.5 rounded-full hover:bg-black/10"
+                  >
+                    <X className="w-3 h-3" strokeWidth={2.5} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 items-end">
+            <label className="w-12 h-12 shrink-0 rounded-xl border border-black/15 flex items-center justify-center text-[#6B6B6B] hover:bg-[#F4F4F2] cursor-pointer">
+              <Paperclip className="w-5 h-5" strokeWidth={2} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.txt,.hwp"
+                onChange={(e) => addFiles(e.target.files)}
+                className="hidden"
+              />
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit(e);
+                }
+              }}
+              rows={1}
+              placeholder="이드에게 궁금한 걸 남겨보세요…"
+              className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+            />
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+            >
+              <ArrowUp className="w-5 h-5" strokeWidth={2.25} />
+            </button>
+          </div>
         </div>
       </form>
     </div>
