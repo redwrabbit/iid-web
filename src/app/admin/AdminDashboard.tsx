@@ -231,7 +231,8 @@ function ResourcesTab({
       <div className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4 flex flex-col gap-3">
         <p className="text-sm font-bold text-[#111111]">새 자료 추가</p>
         <p className="text-xs text-[#9A9A9A] -mt-1">
-          링크나 워드/PDF 파일만 올리면 제목·분류·요약을 AI가 자동으로 만들어서 HR 지식 검색에 바로 추가해요.
+          링크나 워드/PDF 파일을 올리면 본문을 추출해서 HR 지식 검색에 바로 추가해요. 분류·요약은 비워진 채로 들어가고,
+          나중에 Claude Code와의 대화에서 &quot;자료 요약해줘&quot;라고 요청하시면 채워드려요.
         </p>
         <input
           value={url}
@@ -253,7 +254,7 @@ function ResourcesTab({
             className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             <Plus className="w-4 h-4" strokeWidth={2.25} />
-            {busy ? "분석 중…" : "자료 분석하고 추가"}
+            {busy ? "추가하는 중…" : "자료 추가"}
           </button>
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
@@ -270,6 +271,11 @@ function ResourcesTab({
                 <span className="text-[10.5px] text-[#9A9A9A] px-2 py-0.5 rounded-full bg-[#F4F4F2] border border-black/8">
                   {r.category}{r.subcategory ? ` · ${r.subcategory}` : ""}
                 </span>
+                {!r.summary && (
+                  <span className="text-[10.5px] font-bold text-[#FF4103] px-2 py-0.5 rounded-full bg-[rgba(255,65,3,0.08)] border border-[rgba(255,65,3,0.25)]">
+                    분석 대기중
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[#6B6B6B] line-clamp-2">{r.summary || r.content}</p>
               {r.url && (

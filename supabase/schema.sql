@@ -102,7 +102,12 @@ create policy "admin deletes resources" on public.resources
   for delete to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
 
--- 자료의 AI 분석 요약 (링크/파일 업로드 시 자동 생성)
+-- 분류/요약을 나중에 채워 넣을 수 있도록 admin update 허용
+create policy "admin updates resources" on public.resources
+  for update to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 자료의 요약 (업로드 시점엔 비어 있고, 이후 채워 넣음)
 alter table public.resources add column if not exists summary text not null default '';
 
 -- "이드에게 질문하기"에서 올리는 이미지/파일 첨부용 Storage 버킷
