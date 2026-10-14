@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Send } from "lucide-react";
+import { Send, EyeOff, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AttachmentView, type Question } from "./AskThread";
 
@@ -12,6 +12,7 @@ type ChatMsg = { key: string; sender: "user" | "admin"; text: string; attachment
 
 const GROUP_GAP_MS = 10 * 60 * 1000;
 const LAST_VIEWED_KEY = "iid_admin_inbox_last_viewed";
+const HIDDEN_KEY = "iid_admin_inbox_hidden";
 
 function fmt(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -23,6 +24,15 @@ function loadLastViewed(): Record<string, string> {
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
+  }
+}
+
+function loadHidden(): string[] {
+  try {
+    const raw = localStorage.getItem(HIDDEN_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
 }
 
@@ -52,6 +62,8 @@ export default function AdminInboxChat({
   // Starts empty on both server and client so the first client render matches
   // the server-rendered HTML; localStorage is only readable after mount.
   const [lastViewed, setLastViewed] = useState<Record<string, string>>({});
+  const [hidden, setHidden] = useState<string[]>([]);
+  const [showHidden, setShowHidden] = useState(false);
 
   function markSeen(userId: string) {
     const now = new Date().toISOString();
@@ -66,11 +78,24 @@ export default function AdminInboxChat({
     });
   }
 
+  function toggleHidden(userId: string) {
+    setHidden((prev) => {
+      const next = prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId];
+      try {
+        localStorage.setItem(HIDDEN_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }
+
   useEffect(() => {
     const loaded = loadLastViewed();
     const top = topUserId(initialQuestions);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from localStorage, a browser-only external store
     setLastViewed(top ? { ...loaded, [top]: new Date().toISOString() } : loaded);
+    setHidden(loadHidden());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -88,13 +113,16 @@ export default function AdminInboxChat({
         const seenAt = lastViewed[userId];
         const unseenPending = sorted.filter((q) => !q.answer && (!seenAt || q.created_at > seenAt)).length;
         const last = sorted[sorted.length - 1];
-        return { userId, items: sorted, pending, unseenPending, lastAt: last?.created_at || "" };
+        return { userId, items: sorted, pending, unseenPending, lastAt: last?.created_at || "", hidden: hidden.includes(userId) };
       })
       .sort((a, b) => (a.pending !== b.pending ? b.pending - a.pending : b.lastAt.localeCompare(a.lastAt)));
-  }, [questions, lastViewed]);
+  }, [questions, lastViewed, hidden]);
+
+  const visibleThreads = useMemo(() => threads.filter((t) => showHidden || !t.hidden), [threads, showHidden]);
+  const hiddenCount = threads.length - threads.filter((t) => !t.hidden).length;
 
   const [selected, setSelected] = useState<string | null>(null);
-  const activeId = selected ?? threads[0]?.userId ?? null;
+  const activeId = selected ?? visibleThreads[0]?.userId ?? threads[0]?.userId ?? null;
   const active = threads.find((t) => t.userId === activeId);
   const activeProfile = activeId ? profileMap.get(activeId) : undefined;
 
@@ -156,18 +184,22 @@ export default function AdminInboxChat({
 
   return (
     <div className="flex-1 min-h-0 grid grid-cols-[260px_1fr]">
-      <aside className="border-r border-black/10 overflow-y-auto">
-        {threads.map((t) => {
+      <aside className="border-r border-black/10 overflow-y-auto flex flex-col">
+        {visibleThreads.map((t) => {
           const p = profileMap.get(t.userId);
           const activeThread = t.userId === activeId;
           return (
-            <button
+            <div
               key={t.userId}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => selectThread(t.userId)}
-              className={`w-full text-left px-4 py-3 border-b border-black/8 ${activeThread ? "bg-[rgba(255,65,3,0.08)]" : "hover:bg-[#F4F4F2]"}`}
+              onKeyDown={(e) => e.key === "Enter" && selectThread(t.userId)}
+              className={`group relative w-full text-left px-4 py-3 border-b border-black/8 cursor-pointer ${
+                t.hidden ? "opacity-50" : ""
+              } ${activeThread ? "bg-[rgba(255,65,3,0.08)]" : "hover:bg-[#F4F4F2]"}`}
             >
-              <div className="flex items-center justify-between gap-2 mb-0.5">
+              <div className="flex items-center justify-between gap-2 mb-0.5 pr-6">
                 <span className="text-sm font-bold text-[#111111] truncate">{p?.name || "알 수 없음"}</span>
                 {t.unseenPending > 0 && (
                   <span className="shrink-0 text-[10px] font-bold text-white bg-[#FF4103] rounded-full px-1.5 py-0.5">
@@ -175,11 +207,33 @@ export default function AdminInboxChat({
                   </span>
                 )}
               </div>
-              <div className="text-xs text-[#9A9A9A] truncate">{p?.company || p?.email}</div>
+              <div className="text-xs text-[#9A9A9A] truncate pr-6">{p?.company || p?.email}</div>
               <div className="text-[11px] text-[#B0B0B0] mt-0.5">{fmt(t.lastAt)}</div>
-            </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleHidden(t.userId);
+                }}
+                aria-label={t.hidden ? "다시 보이기" : "숨기기"}
+                className={`absolute top-3 right-2 p-1 rounded-md text-[#B0B0B0] hover:text-[#FF4103] hover:bg-white ${
+                  t.hidden ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
+                {t.hidden ? <Eye className="w-3.5 h-3.5" strokeWidth={2} /> : <EyeOff className="w-3.5 h-3.5" strokeWidth={2} />}
+              </button>
+            </div>
           );
         })}
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowHidden((v) => !v)}
+            className="w-full text-center text-xs text-[#9A9A9A] hover:text-[#FF4103] py-2.5 border-b border-black/8"
+          >
+            {showHidden ? "숨긴 대화 숨기기" : `숨긴 대화 ${hiddenCount}개 보기`}
+          </button>
+        )}
       </aside>
 
       <div className="flex flex-col min-h-0">
