@@ -19,11 +19,11 @@ export async function renderOgImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#FFFFFF",
+          background: "rgb(5,5,7)",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoSrc} alt="" width={460} height={460} style={{ borderRadius: 72 }} />
+        <img src={logoSrc} alt="" width={ogSize.height} height={ogSize.height} />
       </div>
     ),
     ogSize
