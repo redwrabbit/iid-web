@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -115,6 +115,16 @@ export function AttachmentView({ a }: { a: Attachment }) {
   );
 }
 
+type ChatMsg = {
+  key: string;
+  kind: "question" | "answer" | "pending";
+  questionId: string;
+  text: string;
+  attachments?: Attachment[];
+  reaction?: string | null;
+  time: string;
+};
+
 export default function AskThread({ initialQuestions, userId }: { initialQuestions: Question[]; userId: string }) {
   const [items, setItems] = useState<Question[]>(initialQuestions);
   const [text, setText] = useState("");
@@ -133,6 +143,42 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
     const supabase = createClient();
     await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
   }
+
+  const chatMsgs = useMemo<ChatMsg[]>(() => {
+    const msgs: ChatMsg[] = [];
+    const seenAnswers = new Set<string>();
+    for (const it of items) {
+      if (it.question || (it.attachments && it.attachments.length > 0)) {
+        msgs.push({
+          key: it.id + "-q",
+          kind: "question",
+          questionId: it.id,
+          text: it.question,
+          attachments: it.attachments,
+          reaction: it.question_reaction,
+          time: it.created_at,
+        });
+      }
+      if (it.answer) {
+        // 관리자가 한 번에 여러 질문에 같은 답변을 보내면 answer/answered_at이 동일하므로 하나로 합침
+        const dedupeKey = `${it.answered_at || it.created_at}__${it.answer}`;
+        if (!seenAnswers.has(dedupeKey)) {
+          seenAnswers.add(dedupeKey);
+          msgs.push({
+            key: it.id + "-a",
+            kind: "answer",
+            questionId: it.id,
+            text: it.answer,
+            reaction: it.answer_reaction,
+            time: it.answered_at || it.created_at,
+          });
+        }
+      } else {
+        msgs.push({ key: it.id + "-p", kind: "pending", questionId: it.id, text: "", time: it.created_at });
+      }
+    }
+    return msgs.sort((a, b) => a.time.localeCompare(b.time));
+  }, [items]);
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -199,58 +245,63 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
 
       <div className="flex-1 min-h-0 overflow-y-auto" onClick={() => setOpenReactionFor(null)}>
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-3 flex flex-col gap-4">
-          {items.length === 0 && (
+          {chatMsgs.length === 0 && (
             <p className="text-sm text-[#9A9A9A] text-center py-10">아직 남긴 질문이 없어요. 아래에 궁금한 걸 적어보세요.</p>
           )}
-          {items.map((it) => (
-            <div key={it.id} className="flex flex-col gap-1 items-end">
-              <div className="max-w-[85%] flex flex-col gap-2 items-end">
-                {it.question && (
-                  <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
-                    {it.question}
-                  </div>
-                )}
-                {it.attachments && it.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {it.attachments.map((a, i) => (
-                      <div key={i} className="bg-[#FF4103] text-white rounded-xl px-2.5 py-2">
-                        <AttachmentView a={a} />
+          {chatMsgs.map((m) => {
+            if (m.kind === "question") {
+              return (
+                <div key={m.key} className="flex flex-col gap-1 items-end">
+                  <div className="max-w-[85%] flex flex-col gap-2 items-end">
+                    {m.text && (
+                      <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
+                        {m.text}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {it.question && (
-                <ReactionTrigger
-                  reaction={it.question_reaction}
-                  align="end"
-                  open={openReactionFor === it.id + "-q"}
-                  onToggle={() => setOpenReactionFor((k) => (k === it.id + "-q" ? null : it.id + "-q"))}
-                  onPick={(emoji) => setReaction(it.id, "question", emoji)}
-                />
-              )}
-              {it.answer ? (
-                <>
-                  <div className="max-w-[92%] self-end w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
-                    <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
-                    {it.answer}
+                    )}
+                    {m.attachments && m.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        {m.attachments.map((a, i) => (
+                          <div key={i} className="bg-[#FF4103] text-white rounded-xl px-2.5 py-2">
+                            <AttachmentView a={a} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <ReactionTrigger
-                    reaction={it.answer_reaction}
-                    align="start"
-                    open={openReactionFor === it.id + "-a"}
-                    onToggle={() => setOpenReactionFor((k) => (k === it.id + "-a" ? null : it.id + "-a"))}
-                    onPick={(emoji) => setReaction(it.id, "answer", emoji)}
+                    reaction={m.reaction}
+                    align="end"
+                    open={openReactionFor === m.key}
+                    onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
+                    onPick={(emoji) => setReaction(m.questionId, "question", emoji)}
                   />
-                </>
-              ) : (
-                <div className="flex items-center gap-1.5 text-xs text-[#9A9A9A]">
-                  <Clock className="w-3.5 h-3.5" strokeWidth={2} />
-                  이드가 확인하고 답변할 예정이에요
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+            if (m.kind === "answer") {
+              return (
+                <div key={m.key} className="flex flex-col gap-1 items-start">
+                  <div className="max-w-[92%] w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
+                    <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
+                    {m.text}
+                  </div>
+                  <ReactionTrigger
+                    reaction={m.reaction}
+                    align="start"
+                    open={openReactionFor === m.key}
+                    onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
+                    onPick={(emoji) => setReaction(m.questionId, "answer", emoji)}
+                  />
+                </div>
+              );
+            }
+            return (
+              <div key={m.key} className="flex items-center gap-1.5 text-xs text-[#9A9A9A]">
+                <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                이드가 확인하고 답변할 예정이에요
+              </div>
+            );
+          })}
           <div ref={bottomRef} />
         </div>
       </div>
