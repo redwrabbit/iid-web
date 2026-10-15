@@ -30,6 +30,11 @@ export const REACTIONS: { value: string; kind: "emoji" | "text" }[] = [
   { value: "완료", kind: "text" },
 ];
 
+const TEXT_REACTION_COLORS: Record<string, string> = {
+  확인중: "bg-[#F59E0B] text-white",
+  완료: "bg-[#10B981] text-white",
+};
+
 export function ReactionTrigger({
   reaction,
   open,
@@ -53,8 +58,10 @@ export function ReactionTrigger({
         }}
         aria-label="반응 남기기"
         className={`text-xs rounded-full px-1.5 py-0.5 ${
-          reaction ? "bg-[#F4F4F2] font-semibold text-[#333333]" : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
-        }`}
+          reaction
+            ? `font-semibold ${TEXT_REACTION_COLORS[reaction] || "bg-[#F4F4F2] text-[#333333]"}`
+            : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+        } ${reaction && TEXT_REACTION_COLORS[reaction] ? "px-2.5" : ""}`}
       >
         {reaction || <SmilePlus className="w-3.5 h-3.5" strokeWidth={2} />}
       </button>
@@ -71,7 +78,7 @@ export function ReactionTrigger({
               className={
                 r.kind === "emoji"
                   ? "text-lg leading-none hover:scale-125 transition-transform p-0.5"
-                  : "text-[11px] font-semibold text-[#555555] bg-[#F4F4F2] hover:bg-[#EDEDEA] rounded-full px-2 py-1"
+                  : `text-[11px] font-semibold rounded-full px-2 py-1 ${TEXT_REACTION_COLORS[r.value]} hover:opacity-85`
               }
             >
               {r.value}
