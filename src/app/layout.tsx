@@ -11,7 +11,7 @@ const notoSerif = Noto_Serif_KR({
 });
 
 const siteUrl = "https://iid-web.vercel.app";
-const title = "이드에게 물어보기";
+const title = "Askiid";
 const description = "이드(iid)가 쓴 글과 영상을 바탕으로 검색하고, 직접 질문할 수 있는 사이트";
 
 export const metadata: Metadata = {

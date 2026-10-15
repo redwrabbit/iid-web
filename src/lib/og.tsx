@@ -3,15 +3,17 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export const ogSize = { width: 1200, height: 630 };
-export const ogAlt = "이드에게 물어보기";
+export const ogAlt = "Askiid";
 export const ogContentType = "image/png";
 
 export async function renderOgImage() {
   const fontDir = join(process.cwd(), "node_modules/pretendard/dist/public/static/alternative");
-  const [regular, extraBold] = await Promise.all([
+  const [regular, extraBold, logoData] = await Promise.all([
     readFile(join(fontDir, "Pretendard-Regular.ttf")),
     readFile(join(fontDir, "Pretendard-ExtraBold.ttf")),
+    readFile(join(process.cwd(), "public/iid-character.png"), "base64"),
   ]);
+  const logoSrc = `data:image/png;base64,${logoData}`;
 
   return new ImageResponse(
     (
@@ -27,24 +29,9 @@ export async function renderOgImage() {
           fontFamily: "Pretendard",
         }}
       >
-        <div
-          style={{
-            width: 132,
-            height: 132,
-            borderRadius: 32,
-            background: "#FF4103",
-            color: "#FFFFFF",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 56,
-            fontWeight: 800,
-            marginBottom: 44,
-          }}
-        >
-          iid
-        </div>
-        <div style={{ fontSize: 68, fontWeight: 800, color: "#111111", display: "flex" }}>이드에게 물어보기</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logoSrc} alt="" width={148} height={148} style={{ borderRadius: 32, marginBottom: 40 }} />
+        <div style={{ fontSize: 72, fontWeight: 800, color: "#111111", display: "flex" }}>Askiid</div>
         <div style={{ fontSize: 30, fontWeight: 400, color: "#6B6B6B", marginTop: 20, display: "flex" }}>
           브런치 글과 유튜브를 검색하고, 이드에게 직접 질문하세요
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -92,10 +93,8 @@ export default function LoginPage() {
   return (
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white border border-black/12 rounded-2xl shadow-sm p-7">
-        <div className="w-10 h-10 rounded-lg bg-[#FF4103] text-white flex items-center justify-center font-serif font-bold mb-4">
-          iid
-        </div>
-        <h1 className="text-xl font-bold mb-1 text-[#111111]">이드에게 물어보기</h1>
+        <Image src="/iid-character.png" alt="iid" width={40} height={40} className="w-10 h-10 rounded-lg mb-4" />
+        <h1 className="text-xl font-bold mb-1 text-[#111111]">Askiid</h1>
         <p className="text-sm text-[#6B6B6B] mb-5">
           {mode === "signup" ? "간단한 정보를 알려주시면 바로 시작할 수 있어요." : "다시 오신 걸 환영해요."}
         </p>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./LogoutButton";
@@ -31,10 +32,8 @@ export default async function NavBar() {
     <header className="border-b border-black/10 bg-white">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="w-9 h-9 rounded-lg bg-[#FF4103] text-white flex items-center justify-center font-serif font-bold text-sm">
-            iid
-          </span>
-          <span className="font-bold text-[17px] hidden sm:inline text-[#111111]">이드에게 물어보기</span>
+          <Image src="/iid-character.png" alt="iid" width={36} height={36} className="w-9 h-9 rounded-lg" />
+          <span className="font-bold text-[17px] hidden sm:inline text-[#111111]">Askiid</span>
         </Link>
 
         <nav className="flex items-center gap-1 flex-1">
