@@ -17,7 +17,18 @@ export type Question = {
   answer_reaction?: string | null;
 };
 
-export const REACTIONS = ["👍", "❤️", "😂", "😮", "🙏"];
+export const REACTIONS: { value: string; kind: "emoji" | "text" }[] = [
+  { value: "👍", kind: "emoji" },
+  { value: "❤️", kind: "emoji" },
+  { value: "😂", kind: "emoji" },
+  { value: "😮", kind: "emoji" },
+  { value: "🙏", kind: "emoji" },
+  { value: "✅", kind: "emoji" },
+  { value: "⭕", kind: "emoji" },
+  { value: "❌", kind: "emoji" },
+  { value: "확인중", kind: "text" },
+  { value: "완료", kind: "text" },
+];
 
 export function ReactionTrigger({
   reaction,
@@ -42,24 +53,28 @@ export function ReactionTrigger({
         }}
         aria-label="반응 남기기"
         className={`text-xs rounded-full px-1.5 py-0.5 ${
-          reaction ? "bg-[#F4F4F2]" : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+          reaction ? "bg-[#F4F4F2] font-semibold text-[#333333]" : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
         }`}
       >
         {reaction || <SmilePlus className="w-3.5 h-3.5" strokeWidth={2} />}
       </button>
       {open && (
         <div
-          className={`absolute z-20 bottom-full mb-1 ${align === "end" ? "right-0" : "left-0"} flex gap-1 bg-white border border-black/10 rounded-full px-2 py-1.5 shadow-md whitespace-nowrap`}
+          className={`absolute z-20 bottom-full mb-1 ${align === "end" ? "right-0" : "left-0"} flex flex-wrap gap-1 w-[164px] bg-white border border-black/10 rounded-2xl px-2 py-2 shadow-md`}
           onClick={(e) => e.stopPropagation()}
         >
-          {REACTIONS.map((e) => (
+          {REACTIONS.map((r) => (
             <button
-              key={e}
+              key={r.value}
               type="button"
-              onClick={() => onPick(reaction === e ? null : e)}
-              className="text-lg leading-none hover:scale-125 transition-transform"
+              onClick={() => onPick(reaction === r.value ? null : r.value)}
+              className={
+                r.kind === "emoji"
+                  ? "text-lg leading-none hover:scale-125 transition-transform p-0.5"
+                  : "text-[11px] font-semibold text-[#555555] bg-[#F4F4F2] hover:bg-[#EDEDEA] rounded-full px-2 py-1"
+              }
             >
-              {e}
+              {r.value}
             </button>
           ))}
         </div>
