@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, EyeOff, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AttachmentView, ReactionTrigger, type Question } from "./AskThread";
@@ -121,10 +121,14 @@ export default function AdminInboxChat({
         const pending = sorted.filter((q) => !q.answer).length;
         const seenAt = lastViewed[userId];
         const unseenPending = sorted.filter((q) => !q.answer && (!seenAt || q.created_at > seenAt)).length;
-        const last = sorted[sorted.length - 1];
-        return { userId, items: sorted, pending, unseenPending, lastAt: last?.created_at || "", hidden: hidden.includes(userId) };
+        // 질문/답변 중 가장 최근 활동 시각 (답변이 질문보다 나중일 수 있으므로 둘 다 본다)
+        const lastAt = sorted.reduce((max, q) => {
+          const t = q.answered_at && q.answered_at > q.created_at ? q.answered_at : q.created_at;
+          return t > max ? t : max;
+        }, "");
+        return { userId, items: sorted, pending, unseenPending, lastAt, hidden: hidden.includes(userId) };
       })
-      .sort((a, b) => (a.pending !== b.pending ? b.pending - a.pending : b.lastAt.localeCompare(a.lastAt)));
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
   }, [questions, lastViewed, hidden]);
 
   const visibleThreads = useMemo(() => threads.filter((t) => showHidden || !t.hidden), [threads, showHidden]);
@@ -176,6 +180,11 @@ export default function AdminInboxChat({
     }
     return msgs.sort((a, b) => a.time.localeCompare(b.time));
   }, [active]);
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [activeId]);
 
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
 
@@ -323,6 +332,7 @@ export default function AdminInboxChat({
                   </div>
                 );
               })}
+              <div ref={bottomRef} />
             </div>
 
             <div className="border-t border-black/10 px-5 py-3">
