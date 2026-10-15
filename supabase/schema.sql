@@ -34,6 +34,40 @@ create policy "admin updates questions" on public.questions
 -- 질문에 첨부한 이미지/파일 (url/name/type의 배열)
 alter table public.questions add column if not exists attachments jsonb not null default '[]'::jsonb;
 
+-- 질문/답변 말풍선에 다는 이모지 반응 (한 말풍선당 하나)
+alter table public.questions add column if not exists question_reaction text;
+alter table public.questions add column if not exists answer_reaction text;
+
+-- 반응은 테이블 UPDATE 권한을 넓히지 않고 이 함수로만 바꿉니다:
+-- 그 질문을 쓴 본인이거나 관리자만, question_reaction/answer_reaction 두 칸만 건드릴 수 있어요.
+create or replace function public.set_question_reaction(p_question_id uuid, p_field text, p_emoji text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owner uuid;
+begin
+  select user_id into v_owner from public.questions where id = p_question_id;
+  if v_owner is null then
+    raise exception 'question not found';
+  end if;
+  if auth.uid() != v_owner and auth.jwt() ->> 'email' != 'oldddong@gmail.com' then
+    raise exception 'not authorized';
+  end if;
+  if p_field = 'question' then
+    update public.questions set question_reaction = p_emoji where id = p_question_id;
+  elsif p_field = 'answer' then
+    update public.questions set answer_reaction = p_emoji where id = p_question_id;
+  else
+    raise exception 'invalid field: %', p_field;
+  end if;
+end;
+$$;
+
+grant execute on function public.set_question_reaction(uuid, text, text) to authenticated;
+
 -- "HR 지식 검색" 탭에서 남긴 검색어 로그 (관리자만 조회)
 create table if not exists public.search_logs (
   id uuid primary key default gen_random_uuid(),

@@ -17,7 +17,7 @@ export default async function AskPage() {
     const [{ data: questions }, { data: profiles }] = await Promise.all([
       supabase
         .from("questions")
-        .select("id, user_id, question, answer, answered_at, created_at, attachments")
+        .select("id, user_id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
         .order("created_at", { ascending: true }),
       supabase.from("profiles").select("id, email, name, company, role"),
     ]);
@@ -26,7 +26,7 @@ export default async function AskPage() {
 
   const { data: questions } = await supabase
     .from("questions")
-    .select("id, question, answer, answered_at, created_at, attachments")
+    .select("id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
     .order("created_at", { ascending: true });
 
   return <AskThread initialQuestions={(questions as Question[]) || []} userId={user.id} />;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowUp, Clock, Paperclip, X, FileText } from "lucide-react";
+import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -13,7 +13,60 @@ export type Question = {
   answered_at: string | null;
   created_at: string;
   attachments?: Attachment[];
+  question_reaction?: string | null;
+  answer_reaction?: string | null;
 };
+
+export const REACTIONS = ["👍", "❤️", "😂", "😮", "🙏"];
+
+export function ReactionTrigger({
+  reaction,
+  open,
+  align,
+  onToggle,
+  onPick,
+}: {
+  reaction: string | null | undefined;
+  open: boolean;
+  align: "start" | "end";
+  onToggle: () => void;
+  onPick: (emoji: string | null) => void;
+}) {
+  return (
+    <div className={`relative flex ${align === "end" ? "justify-end" : "justify-start"}`}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        aria-label="반응 남기기"
+        className={`text-xs rounded-full px-1.5 py-0.5 ${
+          reaction ? "bg-[#F4F4F2]" : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+        }`}
+      >
+        {reaction || <SmilePlus className="w-3.5 h-3.5" strokeWidth={2} />}
+      </button>
+      {open && (
+        <div
+          className={`absolute z-20 bottom-full mb-1 ${align === "end" ? "right-0" : "left-0"} flex gap-1 bg-white border border-black/10 rounded-full px-2 py-1.5 shadow-md whitespace-nowrap`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {REACTIONS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => onPick(reaction === e ? null : e)}
+              className="text-lg leading-none hover:scale-125 transition-transform"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const MAX_FILES = 3;
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
@@ -48,6 +101,16 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
+
+  async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
+    setOpenReactionFor(null);
+    setItems((prev) =>
+      prev.map((it) => (it.id === questionId ? { ...it, [field === "question" ? "question_reaction" : "answer_reaction"]: emoji } : it))
+    );
+    const supabase = createClient();
+    await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
+  }
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -92,7 +155,7 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
     const { data, error: insErr } = await supabase
       .from("questions")
       .insert({ user_id: userId, question: q, attachments })
-      .select("id, question, answer, answered_at, created_at, attachments")
+      .select("id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
       .single();
     setBusy(false);
     if (!insErr && data) {
@@ -112,13 +175,13 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto" onClick={() => setOpenReactionFor(null)}>
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-3 flex flex-col gap-4">
           {items.length === 0 && (
             <p className="text-sm text-[#9A9A9A] text-center py-10">아직 남긴 질문이 없어요. 아래에 궁금한 걸 적어보세요.</p>
           )}
           {items.map((it) => (
-            <div key={it.id} className="flex flex-col gap-2 items-end">
+            <div key={it.id} className="flex flex-col gap-1 items-end">
               <div className="max-w-[85%] flex flex-col gap-2 items-end">
                 {it.question && (
                   <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
@@ -135,11 +198,29 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
                   </div>
                 )}
               </div>
+              {it.question && (
+                <ReactionTrigger
+                  reaction={it.question_reaction}
+                  align="end"
+                  open={openReactionFor === it.id + "-q"}
+                  onToggle={() => setOpenReactionFor((k) => (k === it.id + "-q" ? null : it.id + "-q"))}
+                  onPick={(emoji) => setReaction(it.id, "question", emoji)}
+                />
+              )}
               {it.answer ? (
-                <div className="max-w-[92%] self-end w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
-                  <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
-                  {it.answer}
-                </div>
+                <>
+                  <div className="max-w-[92%] self-end w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
+                    <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
+                    {it.answer}
+                  </div>
+                  <ReactionTrigger
+                    reaction={it.answer_reaction}
+                    align="start"
+                    open={openReactionFor === it.id + "-a"}
+                    onToggle={() => setOpenReactionFor((k) => (k === it.id + "-a" ? null : it.id + "-a"))}
+                    onPick={(emoji) => setReaction(it.id, "answer", emoji)}
+                  />
+                </>
               ) : (
                 <div className="flex items-center gap-1.5 text-xs text-[#9A9A9A]">
                   <Clock className="w-3.5 h-3.5" strokeWidth={2} />

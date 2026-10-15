@@ -3,12 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Send, EyeOff, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AttachmentView, type Question } from "./AskThread";
+import { AttachmentView, ReactionTrigger, type Question } from "./AskThread";
 
 type Profile = { id: string; email: string; name: string; company: string | null; role: string | null };
 export type AdminQuestion = Question & { user_id: string };
 
-type ChatMsg = { key: string; sender: "user" | "admin"; text: string; attachments?: Question["attachments"]; time: string };
+type ChatMsg = {
+  key: string;
+  questionId: string;
+  field: "question" | "answer";
+  sender: "user" | "admin";
+  text: string;
+  attachments?: Question["attachments"];
+  reaction?: string | null;
+  time: string;
+};
 
 const GROUP_GAP_MS = 10 * 60 * 1000;
 const LAST_VIEWED_KEY = "iid_admin_inbox_last_viewed";
@@ -137,19 +146,47 @@ export default function AdminInboxChat({
     const seenAnswers = new Set<string>();
     for (const it of active.items) {
       if (it.question || (it.attachments && it.attachments.length > 0)) {
-        msgs.push({ key: it.id + "-q", sender: "user", text: it.question, attachments: it.attachments, time: it.created_at });
+        msgs.push({
+          key: it.id + "-q",
+          questionId: it.id,
+          field: "question",
+          sender: "user",
+          text: it.question,
+          attachments: it.attachments,
+          reaction: it.question_reaction,
+          time: it.created_at,
+        });
       }
       if (it.answer) {
         // 한 번에 여러 건에 같은 답변을 보내면 answer/answered_at이 동일하므로 하나로 합침
         const dedupeKey = `${it.answered_at || it.created_at}__${it.answer}`;
         if (!seenAnswers.has(dedupeKey)) {
           seenAnswers.add(dedupeKey);
-          msgs.push({ key: it.id + "-a", sender: "admin", text: it.answer, time: it.answered_at || it.created_at });
+          msgs.push({
+            key: it.id + "-a",
+            questionId: it.id,
+            field: "answer",
+            sender: "admin",
+            text: it.answer,
+            reaction: it.answer_reaction,
+            time: it.answered_at || it.created_at,
+          });
         }
       }
     }
     return msgs.sort((a, b) => a.time.localeCompare(b.time));
   }, [active]);
+
+  const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
+
+  async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
+    setOpenReactionFor(null);
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === questionId ? { ...q, [field === "question" ? "question_reaction" : "answer_reaction"]: emoji } : q))
+    );
+    const supabase = createClient();
+    await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
+  }
 
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
@@ -246,12 +283,13 @@ export default function AdminInboxChat({
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-1.5">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-1.5" onClick={() => setOpenReactionFor(null)}>
               {chatMsgs.map((m, i) => {
                 const prev = chatMsgs[i - 1];
                 const showTime = !prev || new Date(m.time).getTime() - new Date(prev.time).getTime() > GROUP_GAP_MS;
+                const align = m.sender === "admin" ? "end" : "start";
                 return (
-                  <div key={m.key} className="flex flex-col gap-1.5">
+                  <div key={m.key} className="flex flex-col gap-1">
                     {showTime && <div className="text-center text-[10.5px] text-[#B0B0B0] py-1">{fmt(m.time)}</div>}
                     <div className={`flex flex-col gap-1.5 max-w-[85%] ${m.sender === "admin" ? "self-end items-end" : "items-start"}`}>
                       {m.text && (
@@ -275,6 +313,13 @@ export default function AdminInboxChat({
                         </div>
                       )}
                     </div>
+                    <ReactionTrigger
+                      reaction={m.reaction}
+                      align={align}
+                      open={openReactionFor === m.key}
+                      onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
+                      onPick={(emoji) => setReaction(m.questionId, m.field, emoji)}
+                    />
                   </div>
                 );
               })}
