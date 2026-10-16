@@ -54,7 +54,7 @@ export default function Page() {
             <span className="bt__d">{LADDER.map((l) => l.how).join(" → ")}</span>
             <span className="bt__go" aria-hidden="true">→</span>
           </Link>
-          <Link href="/services/ways" className="bt bt--red bt--w7">
+          <Link href="/services/ways" className="bt bt--soft bt--w7">
             <span className="bt__k">일하는 방식</span>
             <span className="bt__big bt__big--sm">정답은 없고, 맥락만 있다</span>
             <span className="bt__cycle" aria-label="진단, 구조 해석, 실행 설계, 운영 검증">
