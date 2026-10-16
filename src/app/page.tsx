@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "HR Problem Solver iid · 조직과 사람에 대한 의사결정을 도와줍니다",
@@ -15,12 +16,15 @@ export default function Home() {
             <h1>조직과 사람에 대한<br />의사결정을 <em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
           </div>
-          <ul className="home__quotes">
+          <div className="home__side">
+            <Image className="home__logo" src="/iid-character-cutout.png" alt="이드(iid) 캐릭터: 빨간 안경을 쓴 얼굴과 iid 말풍선" width={444} height={400} priority />
+            <ul className="home__quotes">
             <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
             <li>“지금 뭘 바꿔야 할지 모르겠다. 감이 없다.”</li>
             <li>“운영은 하고 있는데… 잘하고 있는 걸까?”</li>
             <li>“잘 뽑은 것 같은데, 왜 자꾸 떠나는 걸까?”</li>
           </ul>
+          </div>
         </div>
         <div className="wrap home__foot">
           <a href="mailto:iid.solutor@gmail.com">iid.solutor@gmail.com</a>

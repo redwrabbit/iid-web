@@ -646,3 +646,14 @@ h1{letter-spacing:-.01em}
 
 main{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){main{scroll-behavior:auto}}
+
+/* 홈: 말풍선 위에 캐릭터, 말풍선은 한 줄씩.
+   전체 높이(캐릭터 + 말풍선 4개)는 이전의 두 줄 말풍선 4개 높이와 같게 맞춘다. */
+.site-root{
+  .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
+  .home__side{--fo:clamp(18px,min(2.1vw,3vh),24px);height:calc(4 * (2.8 * var(--fo) + 36px) + 42px);display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+  .home__logo{flex:1 1 0;min-height:0;width:auto;height:auto;aspect-ratio:444/400;object-fit:contain;object-position:left center}
+  .home__quotes{flex:none;gap:12px}
+  .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:12px 22px;font-size:clamp(15px,min(1.55vw,2.4vh),19px);line-height:1.4}
+  @media (max-width:760px){.home__side{display:none}}
+}
