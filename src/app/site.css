@@ -652,8 +652,9 @@ main{scroll-behavior:smooth}
 .site-root{
   .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
   .home__side{--fo:clamp(18px,min(2.1vw,3vh),24px);height:calc(4 * (2.8 * var(--fo) + 36px) + 42px);display:flex;flex-direction:column;gap:14px;align-items:flex-start}
-  .home__logo{flex:1 1 0;min-height:0;width:auto;height:auto;aspect-ratio:444/400;object-fit:contain;object-position:left center}
-  .home__quotes{flex:none;gap:12px}
-  .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:12px 22px;font-size:clamp(15px,min(1.55vw,2.4vh),19px);line-height:1.4}
+  .home__logo{flex:1 1 0;min-height:0;width:auto;height:auto;aspect-ratio:461/401;object-fit:contain;object-position:left center}
+  .home__quotes{flex:none;gap:10px}
+  /* 글자는 가장 긴 문장이 한 줄에 들어가는 만큼 키운다 (화면 폭에 비례) */
+  .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:10px 20px;font-size:clamp(14px,min(calc((min(100vw,1040px) - 184px) / 36),2.8vh),24px);line-height:1.4}
   @media (max-width:760px){.home__side{display:none}}
 }
