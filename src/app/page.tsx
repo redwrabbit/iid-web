@@ -17,7 +17,7 @@ export default function Home() {
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
           </div>
           <div className="home__side">
-            <Image className="home__logo" src="/iid-character-cutout.png" alt="이드(iid) 캐릭터: 빨간 안경을 쓴 얼굴과 iid 말풍선" width={461} height={401} priority />
+            <Image className="home__logo" src="/iid-character-cutout.png" alt="이드(iid) 캐릭터: 빨간 안경을 쓴 얼굴과 iid 말풍선" width={447} height={401} priority />
             <ul className="home__quotes">
             <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
             <li>“지금 뭘 바꿔야 할지 모르겠다. 감이 없다.”</li>
