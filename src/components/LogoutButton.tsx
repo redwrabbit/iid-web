@@ -16,7 +16,7 @@ export default function LogoutButton() {
         router.push("/");
         router.refresh();
       }}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full border border-black/15 text-[#6B6B6B] hover:border-[#FF4103] hover:text-[#FF4103]"
+      className="top__logout"
     >
       <LogOut className="w-3.5 h-3.5" strokeWidth={2.25} />
       로그아웃

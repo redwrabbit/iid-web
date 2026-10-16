@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Noto_Serif_KR } from "next/font/google";
+import { Noto_Serif_KR, Jua } from "next/font/google";
 import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
-import NavBar from "@/components/NavBar";
+import "./site.css";
+import SiteHeader from "@/components/site/SiteHeader";
 
 const notoSerif = Noto_Serif_KR({
   variable: "--font-serif",
@@ -10,9 +11,16 @@ const notoSerif = Noto_Serif_KR({
   weight: ["500", "600", "700"],
 });
 
+const jua = Jua({
+  variable: "--font-jua",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
+
 const siteUrl = "https://iid-web.vercel.app";
-const title = "Askiid";
-const description = "이드 라이브러리 검색, Q&A";
+const title = "iid · HR Problem Solver";
+const description = "조직과 사람에 대한 의사결정을 돕는 HR 자문·컨설팅. 서비스, 이드 콘텐츠, 질문/상담.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -35,9 +43,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className={`${notoSerif.variable} h-full`}>
+    <html lang="ko" className={`${notoSerif.variable} ${jua.variable} h-full`}>
       <body className="h-full flex flex-col bg-white text-[#111111] font-sans antialiased">
-        <NavBar />
+        <SiteHeader />
         <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">{children}</main>
       </body>
     </html>
