@@ -1,6 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteFooter from "@/components/site/SiteFooter";
+import { companies } from "@/content/careers";
+import { press, refs } from "@/content/library";
+
+const POSTS = 278; // 이드 콘텐츠(검색)에 올라 있는 글·영상 수
+const startups = companies.filter((c) => c.group === "startup");
+const enterprises = companies.filter((c) => c.group === "enterprise");
+
+function CompanyList({ items }: { items: typeof companies }) {
+  return (
+    <div className="co-list">
+      {items.map((c) => (
+        <details key={c.name} className="co" name="companies">
+          <summary>
+            <span className="co__name">{c.name}<small>{c.en}</small></span>
+            <span className="co__role">{c.role}</span>
+            <span className="co__tags">{c.industry} · {c.stage}</span>
+          </summary>
+          <ul className="co__body">
+            {c.lines.map(([head, ...subs]) => (
+              <li key={head}>
+                {head}
+                {subs.length > 0 && (
+                  <ul>
+                    {subs.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ))}
+    </div>
+  );
+}
 
 export const metadata: Metadata = {
   title: "이드 소개 · iid",
@@ -41,6 +77,12 @@ export default function Page() {
                 <p>특히 급성장기(10배 이상 규모 확장), 조직 재편, 성과관리 체계 구축, 투자/IPO 대응 등 성장과 위기 국면을 모두 아우르는 HR 의사결정 프로젝트를 리드했습니다.</p>
               </article>
             </div>
+            <h2 className="h2 h2--gap">회사별 상세 이력</h2>
+            <p className="section__lead">회사를 열면 맡았던 역할과 주요 업무를 볼 수 있습니다.</p>
+            <h3 className="co-group">스타트업</h3>
+            <CompanyList items={startups} />
+            <h3 className="co-group">대기업</h3>
+            <CompanyList items={enterprises} />
             <h2 className="h2 h2--gap">경험과 전문 영역</h2>
             <p className="section__lead">대기업에서 스타트업까지, 채용에서 구조조정·M&amp;A까지 조직의 전 주기에 걸친 HR과 경영의 결정 순간을 경험해왔습니다.</p>
             <h2 className="h2 h2--gap">글과 콘텐츠 활동</h2>
@@ -52,6 +94,14 @@ export default function Page() {
               <li><a href="https://brunch.co.kr/@iid-hr" target="_blank" rel="noopener">Brunch</a></li>
               <li><a href="https://www.youtube.com/@iid_story" target="_blank" rel="noopener">YouTube</a></li>
             </ul>
+          </div>
+          <div className="wrap about-stats">
+            <dl className="stats" aria-label="숫자로 보는 이드">
+              <div><dt>글 · 영상</dt><dd><b>{POSTS}</b>편</dd></div>
+              <div><dt>칼럼 · 강연 · 기사</dt><dd><b>{press.length}</b>건</dd></div>
+              <div><dt>자문 레퍼런스</dt><dd><b>{refs.length}</b>곳</dd></div>
+              <div><dt>거쳐온 회사</dt><dd><b>{companies.length}</b>곳</dd></div>
+            </dl>
           </div>
       </div>
       <SiteFooter />
