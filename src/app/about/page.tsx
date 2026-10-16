@@ -2,14 +2,11 @@ import type { Metadata } from "next";
 import SiteFooter from "@/components/site/SiteFooter";
 import CareerBoard from "@/components/site/CareerBoard";
 import { companies } from "@/content/careers";
-import { press, refs } from "@/content/library";
 
 export const metadata: Metadata = {
   title: "이드 소개 · iid",
   description: "HR Problem Solver, 김동현(이드)의 소개와 이력.",
 };
-
-const POSTS = 278; // 이드 콘텐츠(검색)에 올라 있는 글·영상 수
 
 const groups = [
   {
@@ -43,7 +40,7 @@ export default function Page() {
               저는 대기업과 스타트업을 오가며 채용부터 구조조정, M&amp;A까지 HR의 전 주기를 직접 경험했습니다. 저는 HR이 단순히 제도와 문서를 만드는 일이 아니라, 비즈니스와 사람 사이에서 실제로 작동하는 의사결정과 실행 구조를 설계하는 일이라고 믿습니다. 좋은 조직은 제도만으로 만들어지지 않습니다. 현장의 운영과 결정 순간에서 답이 만들어지고, 그 순간을 함께하는 것이 저의 역할입니다.
             </p>
           </article>
-          <aside className="ab ab--career" aria-label="약력">
+          <aside className="career-side" aria-label="약력">
             <ul className="career">
               <li><b>現</b> 티오더 HR Director</li>
               <li><b>前</b> 휴이노 HR 리드</li>
@@ -66,14 +63,6 @@ export default function Page() {
           <CareerBoard groups={groups} />
         </section>
 
-        <div className="wrap about-stats">
-          <dl className="stats" aria-label="숫자로 보는 이드">
-            <div><dt>글 · 영상</dt><dd><b>{POSTS}</b>편</dd></div>
-            <div><dt>칼럼 · 강연 · 기사</dt><dd><b>{press.length}</b>건</dd></div>
-            <div><dt>자문 레퍼런스</dt><dd><b>{refs.length}</b>곳</dd></div>
-            <div><dt>거쳐온 회사</dt><dd><b>{companies.length}</b>곳</dd></div>
-          </dl>
-        </div>
       </div>
       <SiteFooter />
     </div>

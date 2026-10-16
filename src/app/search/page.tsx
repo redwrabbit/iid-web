@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import ContentTabs from "@/components/site/ContentTabs";
 import { ArrowRight, ExternalLink, Search, X } from "lucide-react";
 import { CATEGORY_LIST, SUBCATEGORY_LIST, Post, SearchIndex } from "@/lib/search";
 import { createClient } from "@/lib/supabase/client";
@@ -120,6 +120,9 @@ export default function SearchPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      <div className="site-root">
+        <ContentTabs />
+      </div>
       <div className="border-b border-black/10 bg-white px-4 sm:px-6 py-5">
         <form
           onSubmit={(e) => {
@@ -145,11 +148,6 @@ export default function SearchPage() {
             <ArrowRight className="w-5 h-5" strokeWidth={2.25} />
           </button>
         </form>
-        <p className="mx-auto max-w-3xl mt-3 text-xs text-[#6B6B6B]">
-          <Link href="/library" className="font-semibold text-[#FF4103] hover:underline">
-            케이스 · 자료 · 칼럼/강연/기사 · 도서 보기 →
-          </Link>
-        </p>
       </div>
 
       <div className={`flex-1 min-h-0 grid ${showSubColumn ? "grid-cols-[190px_190px_1fr]" : "grid-cols-[190px_1fr]"}`}>

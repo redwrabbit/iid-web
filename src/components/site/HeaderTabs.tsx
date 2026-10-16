@@ -7,7 +7,7 @@ const TABS = [
   { href: "/", label: "Home", match: /^\/$/ },
   { href: "/services", label: "자문/컨설팅", match: /^\/services/ },
   { href: "/about", label: "이드 소개", match: /^\/about/ },
-  { href: "/search", label: "이드 콘텐츠", match: /^\/(search|library)/ },
+  { href: "/search", label: "HR 아티클/자료", match: /^\/(search|library)/ },
   { href: "/ask", label: "질문/상담", match: /^\/ask/ },
 ];
 

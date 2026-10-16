@@ -20,7 +20,7 @@ const jua = Jua({
 
 const siteUrl = "https://iid-web.vercel.app";
 const title = "iid · HR Problem Solver";
-const description = "조직과 사람에 대한 의사결정을 돕는 HR 자문·컨설팅. 서비스, 이드 콘텐츠, 질문/상담.";
+const description = "조직과 사람에 대한 의사결정을 돕는 HR 자문·컨설팅. 서비스, HR 아티클/자료, 질문/상담.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
