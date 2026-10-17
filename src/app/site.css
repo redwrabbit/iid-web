@@ -8,7 +8,7 @@
   --sans:"Pretendard Variable",Pretendard,system-ui,sans-serif;
   --ease-out:cubic-bezier(.23,1,.32,1);
   --dur-press:120ms; --dur-hover:150ms; --dur-ui:200ms;
-  --shadow-pop:3px 3px 0 var(--ink);
+  --logo-black:#050507; --shadow-pop:3px 3px 0 var(--ink);
   interpolate-size:allow-keywords;
 }
 .site-root{
@@ -653,8 +653,9 @@ main{scroll-behavior:smooth}
   .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
   .home__side{--fo:clamp(18px,min(2.1vw,3vh),24px);width:fit-content;max-width:100%;height:calc(4 * (2.8 * var(--fo) + 36px) + 42px);display:flex;flex-direction:column;gap:14px}
   /* 검은 박스: 폭은 아래 말풍선 중 가장 긴 것과 같게 (박스 자체는 폭 계산에 참여하지 않음) */
-  .home__badge{flex:1 1 0;min-height:0;width:0;min-width:100%;display:flex;align-items:center;gap:clamp(10px,1.6vw,18px);padding:12px clamp(14px,1.8vw,22px);border:3px solid var(--ink);border-radius:24px;background:var(--ink);color:#fff;overflow:hidden}
-  .home__mark{flex:none;height:100%;width:auto;max-height:100%;object-fit:contain}
+  .home__badge{flex:1 1 0;min-height:0;width:0;min-width:100%;display:flex;align-items:center;gap:clamp(10px,1.6vw,18px);padding:12px clamp(14px,1.8vw,22px);border:3px solid var(--logo-black);border-radius:24px;background:var(--logo-black);color:#fff;overflow:hidden}
+  /* 원래 로고 이미지(검정 배경)를 그대로 쓴다. 박스 안쪽 높이에 맞춰 넘치지 않게 */
+  .home__mark{flex:none;height:100%;width:auto;max-width:48%;object-fit:contain}
   .home__brand{min-width:0;font:800 clamp(24px,3.1vw,34px)/1.08 var(--sans);letter-spacing:-.02em}
   .home__quotes{flex:none;gap:10px}
   /* 글자는 가장 긴 문장이 한 줄에 들어가는 만큼 키운다 (화면 폭에 비례) */
