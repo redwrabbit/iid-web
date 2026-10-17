@@ -651,8 +651,11 @@ main{scroll-behavior:smooth}
    전체 높이(캐릭터 + 말풍선 4개)는 이전의 두 줄 말풍선 4개 높이와 같게 맞춘다. */
 .site-root{
   .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
-  .home__side{--fo:clamp(18px,min(2.1vw,3vh),24px);height:calc(4 * (2.8 * var(--fo) + 36px) + 42px);display:flex;flex-direction:column;gap:14px;align-items:flex-start}
-  .home__logo{flex:1 1 0;min-height:0;width:auto;height:auto;aspect-ratio:1;border-radius:50%;border:3px solid var(--ink);box-shadow:var(--shadow-pop);background:var(--ink);object-fit:cover}
+  .home__side{--fo:clamp(18px,min(2.1vw,3vh),24px);width:fit-content;max-width:100%;height:calc(4 * (2.8 * var(--fo) + 36px) + 42px);display:flex;flex-direction:column;gap:14px}
+  /* 검은 박스: 폭은 아래 말풍선 중 가장 긴 것과 같게 (박스 자체는 폭 계산에 참여하지 않음) */
+  .home__badge{flex:1 1 0;min-height:0;width:0;min-width:100%;display:flex;align-items:center;gap:clamp(10px,1.6vw,18px);padding:12px clamp(14px,1.8vw,22px);border:3px solid var(--ink);border-radius:24px;background:var(--ink);color:#fff;overflow:hidden}
+  .home__mark{flex:none;height:100%;width:auto;max-height:100%;object-fit:contain}
+  .home__brand{min-width:0;font:800 clamp(24px,3.1vw,34px)/1.08 var(--sans);letter-spacing:-.02em}
   .home__quotes{flex:none;gap:10px}
   /* 글자는 가장 긴 문장이 한 줄에 들어가는 만큼 키운다 (화면 폭에 비례) */
   .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:10px 20px;font-size:clamp(14px,min(calc((min(100vw,1040px) - 184px) / 36),2.8vh),24px);line-height:1.4}
