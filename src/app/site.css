@@ -804,3 +804,10 @@ main{scroll-behavior:smooth}
   @media (max-width:960px){.ct__in{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media (max-width:520px){.ct__d{font-size:12px}.ct a{padding:10px 12px}}
 }
+
+/* 헤더 그룹: 제목 · 메뉴 · 계정 사이에 여백을 두고, 계정은 구분선으로 묶는다 */
+@media (min-width:961px){
+  .site-root .top__in{justify-content:flex-start;gap:0}
+  .site-root .top__in .tabs{margin-left:56px;margin-right:auto;gap:8px}
+  .site-root .top__auth{margin-left:32px;padding-left:28px;border-left:1px solid rgba(255,255,255,.18);gap:16px}
+}
