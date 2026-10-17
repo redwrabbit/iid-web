@@ -1,6 +1,3 @@
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
-
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 export const MAX_CONTENT = 20000;
 
@@ -55,6 +52,7 @@ export async function extractFromFile(file: File): Promise<string> {
   const name = file.name.toLowerCase();
   const buffer = Buffer.from(await file.arrayBuffer());
   if (name.endsWith(".pdf")) {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     try {
       const result = await parser.getText();
@@ -64,6 +62,7 @@ export async function extractFromFile(file: File): Promise<string> {
     }
   }
   if (name.endsWith(".docx")) {
+    const mammoth = (await import("mammoth")).default;
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   }
