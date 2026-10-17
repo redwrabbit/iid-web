@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import SiteFooter from "@/components/site/SiteFooter";
 import ContentTabs from "@/components/site/ContentTabs";
-import { libs, press, refs } from "@/content/library";
+import { getSiteData } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "HR 아티클/자료 · iid",
@@ -18,12 +18,10 @@ function group<T>(rows: T[], key: (r: T) => string, order?: string[]): [string, 
   return keys.map((k) => [k, map.get(k)!]);
 }
 
-const libGroups: [string, string[]][] = group(libs, ([g]) => (g === "조직·평가" ? "조직" : g === "HR" ? "기타" : g)).map(
-  ([g, rows]) => [g, rows.map(([, t]) => t)]
-);
-const pressGroups = group(press, ([, kind]) => (kind === "칼럼" ? "칼럼" : kind === "강연" ? "강연" : "기사 · 인터뷰"), ["칼럼", "강연", "기사 · 인터뷰"]);
-
-export default function LibraryPage() {
+export default async function LibraryPage() {
+  const { libs, press, refs } = await getSiteData();
+  const libGroups: [string, string[]][] = group(libs, ([g]) => g).map(([g, rows]) => [g, rows.map(([, t]) => t)]);
+  const pressGroups = group(press, ([, kind]) => (kind === "칼럼" ? "칼럼" : kind === "강연" ? "강연" : "기사 · 인터뷰"), ["칼럼", "강연", "기사 · 인터뷰"]);
   return (
     <div className="site-root site-page">
       <div className="panel">
@@ -39,8 +37,8 @@ export default function LibraryPage() {
           </div>
           <h3 className="sub">자문 레퍼런스</h3>
           <ul className="refs">
-            {refs.map(([size, industry, area]) => (
-              <li key={size + industry + area}>
+            {refs.map(([size, industry, area], i) => (
+              <li key={i}>
                 <b>{size} · {industry}</b>
                 <span>{area}</span>
               </li>
@@ -72,7 +70,7 @@ export default function LibraryPage() {
                 <h3>{group}</h3>
                 <ul>
                   {items.map(([media, , title, url]) => (
-                    <li key={url}>
+                    <li key={url + title}>
                       <a className="pcard" href={url} target="_blank" rel="noopener">
                         <span className="media">{media}</span>
                         <span className="title">{title}</span>

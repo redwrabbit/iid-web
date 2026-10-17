@@ -4,14 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { POSTS } from "@/content/stats";
-import { press, refs } from "@/content/library";
 
 type Item = { href: string; id: string; title: string; desc: string };
 
 const ITEMS: Item[] = [
   { href: "/search", id: "search", title: "글 · 영상", desc: `브런치 글과 유튜브 ${POSTS}편을 검색` },
-  { href: "/library#cases", id: "cases", title: "케이스 · 자료", desc: `자문 레퍼런스 ${refs.length}곳, 자료 라이브러리` },
-  { href: "/library#press", id: "press", title: "칼럼 · 강연 · 기사", desc: `언론과 행사에서 나눈 이야기 ${press.length}건` },
+  { href: "/library#cases", id: "cases", title: "케이스 · 자료", desc: "자문 레퍼런스와 자료 라이브러리" },
+  { href: "/library#press", id: "press", title: "칼럼 · 강연 · 기사", desc: "언론과 행사에서 나눈 이야기" },
   { href: "/library#book", id: "book", title: "도서", desc: "『이드의 HR 모험기』와 출판사 서평" },
 ];
 

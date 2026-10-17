@@ -162,3 +162,21 @@ drop policy if exists "admin inserts messages" on public.questions;
 create policy "admin inserts messages" on public.questions
   for insert to authenticated
   with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 사이트 문구(서비스 플랜·영역·레퍼런스·칼럼·자료)를 관리자 화면에서 고치기 위한 테이블
+create table if not exists public.site_content (
+  key text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.site_content enable row level security;
+
+drop policy if exists "anyone reads site content" on public.site_content;
+create policy "anyone reads site content" on public.site_content
+  for select to anon, authenticated using (true);
+
+drop policy if exists "admin writes site content" on public.site_content;
+create policy "admin writes site content" on public.site_content
+  for all to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getStoredContent } from "@/lib/site-content";
 import AdminDashboard from "./AdminDashboard";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
@@ -19,12 +20,15 @@ export default async function AdminPage() {
     supabase.from("resources").select("id, title, url, category, subcategory, content, summary, created_at").order("created_at", { ascending: false }),
   ]);
 
+  const siteContent = await getStoredContent();
+
   return (
     <AdminDashboard
       initialQuestions={questions || []}
       initialSearchLogs={searchLogs || []}
       profiles={profiles || []}
       initialResources={resources || []}
+      siteContent={siteContent}
     />
   );
 }

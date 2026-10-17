@@ -2,10 +2,12 @@
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
+import { BarChart3, FileText, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { RESOURCE_CATEGORIES } from "@/lib/resource-fields";
 import { SUBCATEGORY_LIST } from "@/lib/search";
+import type { SectionKey } from "@/lib/site-sections";
+import SiteContentTab from "./SiteContentTab";
 
 type Question = {
   id: string;
@@ -49,13 +51,15 @@ export default function AdminDashboard({
   initialSearchLogs,
   profiles,
   initialResources,
+  siteContent,
 }: {
   initialQuestions: Question[];
   initialSearchLogs: SearchLog[];
   profiles: Profile[];
   initialResources: Resource[];
+  siteContent: Partial<Record<SectionKey, unknown>>;
 }) {
-  const [tab, setTab] = useState<"analytics" | "resources" | "members" | "logs">("analytics");
+  const [tab, setTab] = useState<"analytics" | "resources" | "site" | "members" | "logs">("analytics");
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
@@ -102,6 +106,7 @@ export default function AdminDashboard({
         {[
           { k: "analytics", label: "질문 분석", Icon: BarChart3 },
           { k: "resources", label: "자료 관리", Icon: FileUp },
+          { k: "site", label: "사이트 콘텐츠", Icon: FileText },
           { k: "members", label: "회원", Icon: Users },
           { k: "logs", label: "검색 로그", Icon: History },
         ].map((t) => (
@@ -142,6 +147,8 @@ export default function AdminDashboard({
           onUpdate={(r) => setResources((prev) => prev.map((x) => (x.id === r.id ? r : x)))}
         />
       )}
+
+      {tab === "site" && <SiteContentTab stored={siteContent} />}
 
       {tab === "members" && <MembersTab profiles={profiles} />}
 

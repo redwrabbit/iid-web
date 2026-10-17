@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteFooter from "@/components/site/SiteFooter";
-import { approach, concerns, cycle, experience, extAreas, hrAreas, plans } from "@/content/services";
+import { approach, concerns, cycle, experience } from "@/content/services";
+import { getSiteData } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "자문/컨설팅 · iid",
   description: "이드 컨설팅이 함께하는 조직, 자문·컨설팅 서비스와 플랜, 이드 컨설팅의 차별성.",
 };
-
-const mainPlans = plans.filter((p) => p.size !== "half");
-const addons = plans.filter((p) => p.size === "half");
 
 function SecHead({ title, lead }: { title: string; lead: string }) {
   return (
@@ -20,7 +18,10 @@ function SecHead({ title, lead }: { title: string; lead: string }) {
   );
 }
 
-export default function Page() {
+export default async function Page() {
+  const { plans, hrAreas, extAreas } = await getSiteData();
+  const mainPlans = plans.filter((p) => p.size !== "half");
+  const addons = plans.filter((p) => p.size === "half");
   return (
     <div className="site-root site-page">
       <div className="panel">
