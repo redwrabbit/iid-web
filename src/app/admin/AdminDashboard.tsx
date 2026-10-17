@@ -2,8 +2,10 @@
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Users, History, FileUp, Trash2, Plus, ArrowRight } from "lucide-react";
+import { BarChart3, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { RESOURCE_CATEGORIES } from "@/lib/resource-fields";
+import { SUBCATEGORY_LIST } from "@/lib/search";
 
 type Question = {
   id: string;
@@ -59,6 +61,8 @@ export default function AdminDashboard({
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const pendingCount = questions.filter((q) => !q.answer).length;
+  const [now] = useState(() => Date.now());
+  const recentJoined = profiles.filter((p) => now - new Date(p.created_at).getTime() < 7 * 86400000).length;
 
   const topKeywords = useMemo(
     () => keywordCounts([...initialSearchLogs.map((l) => l.query), ...questions.map((q) => q.question)]),
@@ -80,10 +84,24 @@ export default function AdminDashboard({
         <ArrowRight className="w-4 h-4 text-[#FF4103] shrink-0" strokeWidth={2.25} />
       </Link>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+        {[
+          { label: "전체 회원", value: profiles.length },
+          { label: "최근 7일 가입", value: recentJoined },
+          { label: "등록 자료", value: resources.length },
+          { label: "답변 대기", value: pendingCount },
+        ].map((c) => (
+          <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
+            <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
+            <div className="text-xl font-bold text-[#111111]">{c.value}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex gap-1 mb-5 border-b border-black/10">
         {[
           { k: "analytics", label: "질문 분석", Icon: BarChart3 },
-          { k: "resources", label: "자료 추가", Icon: FileUp },
+          { k: "resources", label: "자료 관리", Icon: FileUp },
           { k: "members", label: "회원", Icon: Users },
           { k: "logs", label: "검색 로그", Icon: History },
         ].map((t) => (
@@ -121,25 +139,11 @@ export default function AdminDashboard({
           resources={resources}
           onAdd={(r) => setResources((prev) => [r, ...prev])}
           onDelete={(id) => setResources((prev) => prev.filter((r) => r.id !== id))}
+          onUpdate={(r) => setResources((prev) => prev.map((x) => (x.id === r.id ? r : x)))}
         />
       )}
 
-      {tab === "members" && (
-        <div className="flex flex-col gap-2">
-          {profiles.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 가입한 회원이 없어요.</p>}
-          {profiles.map((p) => (
-            <div key={p.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-3.5">
-              <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                <span className="text-sm font-bold text-[#111111]">{p.name}</span>
-                <span className="text-xs text-[#9A9A9A]">{fmt(p.created_at)} 가입</span>
-              </div>
-              <div className="text-xs text-[#6B6B6B] mt-1">
-                {[p.email, p.company, p.role].filter(Boolean).join(" · ")}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {tab === "members" && <MembersTab profiles={profiles} />}
 
       {tab === "logs" && (
         <div className="flex flex-col gap-2">
@@ -163,20 +167,129 @@ export default function AdminDashboard({
   );
 }
 
+const INPUT =
+  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
+
+function csvCell(v: string | null) {
+  const t = (v ?? "").replace(/"/g, '""');
+  return `"${/^[=+\-@]/.test(t) ? "'" + t : t}"`;
+}
+
+function MembersTab({ profiles }: { profiles: Profile[] }) {
+  const [q, setQ] = useState("");
+  const list = useMemo(() => {
+    const k = q.trim().toLowerCase();
+    if (!k) return profiles;
+    return profiles.filter((p) => [p.name, p.email, p.company, p.role].some((v) => (v || "").toLowerCase().includes(k)));
+  }, [profiles, q]);
+
+  function exportCsv() {
+    const rows = [["이름", "이메일", "회사", "직무", "가입일"], ...list.map((p) => [p.name, p.email, p.company, p.role, p.created_at.slice(0, 10)])];
+    const csv = "\uFEFF" + rows.map((r) => r.map(csvCell).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `members-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9A9A9A]" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름·이메일·회사·직무 검색" className={`${INPUT} w-full pl-9`} />
+        </div>
+        <span className="text-xs text-[#9A9A9A]">{list.length}명</span>
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={list.length === 0}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103] disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" strokeWidth={2.25} />
+          CSV 내보내기
+        </button>
+      </div>
+      {list.length === 0 && <p className="text-sm text-[#9A9A9A]">{profiles.length === 0 ? "아직 가입한 회원이 없어요." : "검색 결과가 없어요."}</p>}
+      {list.map((p) => (
+        <div key={p.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-3.5">
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <span className="text-sm font-bold text-[#111111]">{p.name}</span>
+            <span className="text-xs text-[#9A9A9A]">{fmt(p.created_at)} 가입</span>
+          </div>
+          <div className="text-xs text-[#6B6B6B] mt-1">{[p.email, p.company, p.role].filter(Boolean).join(" · ")}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CategoryFields({
+  category,
+  subcategory,
+  onChange,
+}: {
+  category: string;
+  subcategory: string;
+  onChange: (c: string, s: string) => void;
+}) {
+  const subs = SUBCATEGORY_LIST[category] || [];
+  return (
+    <div className="flex gap-2 flex-wrap">
+      <select value={category} onChange={(e) => onChange(e.target.value, "")} className={`${INPUT} flex-1 min-w-[140px]`} aria-label="분류">
+        {RESOURCE_CATEGORIES.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+      <select
+        value={subcategory}
+        onChange={(e) => onChange(category, e.target.value)}
+        disabled={subs.length === 0}
+        className={`${INPUT} flex-1 min-w-[140px]`}
+        aria-label="세부 분류"
+      >
+        <option value="">세부 분류 없음</option>
+        {subs.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function ResourcesTab({
   resources,
   onAdd,
   onDelete,
+  onUpdate,
 }: {
   resources: Resource[];
   onAdd: (r: Resource) => void;
   onDelete: (id: string) => void;
+  onUpdate: (r: Resource) => void;
 }) {
+  const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [summary, setSummary] = useState("");
+  const [category, setCategory] = useState("기타");
+  const [subcategory, setSubcategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("");
+  const [editing, setEditing] = useState<Resource | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const shown = useMemo(() => {
+    const k = filter.trim().toLowerCase();
+    return k ? resources.filter((r) => [r.title, r.category, r.url].some((v) => (v || "").toLowerCase().includes(k))) : resources;
+  }, [resources, filter]);
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -197,7 +310,11 @@ function ResourcesTab({
     setBusy(true);
     setError("");
     const fd = new FormData();
+    if (title.trim()) fd.set("title", title.trim());
     if (url.trim()) fd.set("url", url.trim());
+    if (summary.trim()) fd.set("summary", summary.trim());
+    fd.set("category", category);
+    fd.set("subcategory", subcategory);
     if (file) fd.set("file", file);
 
     try {
@@ -205,7 +322,11 @@ function ResourcesTab({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "분석에 실패했어요.");
       onAdd(json.resource);
+      setTitle("");
       setUrl("");
+      setSummary("");
+      setCategory("기타");
+      setSubcategory("");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
@@ -231,21 +352,25 @@ function ResourcesTab({
       <div className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4 flex flex-col gap-3">
         <p className="text-sm font-bold text-[#111111]">새 자료 추가</p>
         <p className="text-xs text-[#9A9A9A] -mt-1">
-          링크나 워드/PDF 파일을 올리면 본문을 추출해서 HR 지식 검색에 바로 추가해요. 분류·요약은 비워진 채로 들어가고,
-          나중에 Claude Code와의 대화에서 &quot;자료 요약해줘&quot;라고 요청하시면 채워드려요.
+          링크나 워드/PDF 파일을 올리면 본문을 추출해 HR 지식 검색에 바로 추가해요. 제목을 비우면 문서 제목을 써요.
         </p>
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="원문 링크 (예: https://...)"
-          className="border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-        />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목 (선택)" className={INPUT} />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="원문 링크 (예: https://...)" className={INPUT} />
         <p className="text-center text-xs text-[#B0B0B0]">또는</p>
         <label className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#555555] cursor-pointer hover:text-[#FF4103] border border-dashed border-black/20 rounded-lg px-3 py-2.5 justify-center">
           <FileUp className="w-4 h-4" strokeWidth={2.25} />
           {file ? file.name : "워드(.docx) 또는 PDF 파일 선택"}
           <input ref={fileInputRef} type="file" accept=".pdf,.docx" onChange={handleFile} className="hidden" />
         </label>
+        <CategoryFields
+          category={category}
+          subcategory={subcategory}
+          onChange={(c, sub) => {
+            setCategory(c);
+            setSubcategory(sub);
+          }}
+        />
+        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} placeholder="요약 (선택)" className={`${INPUT} resize-none`} />
         <div className="flex items-center justify-end gap-3 flex-wrap">
           <button
             type="button"
@@ -261,41 +386,164 @@ function ResourcesTab({
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-bold text-[#111111]">추가된 자료 ({resources.length})</p>
-        {resources.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 추가한 자료가 없어요.</p>}
-        {resources.map((r) => (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm font-bold text-[#111111]">추가된 자료 ({resources.length})</p>
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="제목·분류·링크 검색" className={`${INPUT} w-56`} />
+        </div>
+        {shown.length === 0 && <p className="text-sm text-[#9A9A9A]">{resources.length === 0 ? "아직 추가한 자료가 없어요." : "검색 결과가 없어요."}</p>}
+        {shown.map((r) => (
           <div key={r.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl p-3.5 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-sm font-bold text-[#111111]">{r.title}</span>
                 <span className="text-[10.5px] text-[#9A9A9A] px-2 py-0.5 rounded-full bg-[#F4F4F2] border border-black/8">
-                  {r.category}{r.subcategory ? ` · ${r.subcategory}` : ""}
+                  {r.category}
+                  {r.subcategory ? ` · ${r.subcategory}` : ""}
                 </span>
                 {!r.summary && (
                   <span className="text-[10.5px] font-bold text-[#FF4103] px-2 py-0.5 rounded-full bg-[rgba(255,65,3,0.08)] border border-[rgba(255,65,3,0.25)]">
-                    분석 대기중
+                    요약 없음
                   </span>
                 )}
               </div>
               <p className="text-xs text-[#6B6B6B] line-clamp-2">{r.summary || r.content}</p>
               {r.url && (
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#FF4103] hover:underline">
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#FF4103] hover:underline break-all">
                   {r.url}
                 </a>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => remove(r.id)}
-              aria-label="삭제"
-              className="shrink-0 p-2 rounded-md text-[#9A9A9A] hover:text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4" strokeWidth={2} />
-            </button>
+            <div className="shrink-0 flex">
+              <button
+                type="button"
+                onClick={() => setEditing(r)}
+                aria-label="편집"
+                className="p-2 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+              >
+                <Pencil className="w-4 h-4" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(r.id)}
+                aria-label="삭제"
+                className="p-2 rounded-md text-[#9A9A9A] hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      {editing && (
+        <EditDialog
+          key={editing.id}
+          resource={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(r) => {
+            onUpdate(r);
+            setEditing(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
+function EditDialog({ resource, onClose, onSaved }: { resource: Resource; onClose: () => void; onSaved: (r: Resource) => void }) {
+  const [title, setTitle] = useState(resource.title);
+  const [url, setUrl] = useState(resource.url || "");
+  const [summary, setSummary] = useState(resource.summary);
+  const [content, setContent] = useState(resource.content);
+  const [category, setCategory] = useState(resource.category);
+  const [subcategory, setSubcategory] = useState(resource.subcategory);
+  const [file, setFile] = useState<File | null>(null);
+  const [reextract, setReextract] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save() {
+    if (!title.trim()) {
+      setError("제목은 비워둘 수 없어요.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const fd = new FormData();
+    fd.set("title", title.trim());
+    fd.set("url", url.trim());
+    fd.set("summary", summary);
+    fd.set("category", category);
+    fd.set("subcategory", subcategory);
+    if (file) fd.set("file", file);
+    else if (reextract) fd.set("reextract", "1");
+    else fd.set("content", content);
+    try {
+      const res = await fetch(`/api/admin/resources/${resource.id}`, { method: "PATCH", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "저장하지 못했어요.");
+      onSaved(json.resource);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류예요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="자료 편집"
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-5 flex flex-col gap-3"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-base font-bold text-[#111111]">자료 편집</p>
+          <button type="button" onClick={onClose} aria-label="닫기" className="p-1.5 text-[#9A9A9A] hover:text-[#111111]">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" className={INPUT} />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="원문 링크" className={INPUT} />
+        <CategoryFields
+          category={category}
+          subcategory={subcategory}
+          onChange={(c, sub) => {
+            setCategory(c);
+            setSubcategory(sub);
+          }}
+        />
+        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} placeholder="요약" className={`${INPUT} resize-none`} />
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={8}
+          disabled={!!file || reextract}
+          placeholder="본문 (검색에 쓰여요)"
+          className={`${INPUT} resize-y disabled:opacity-50`}
+        />
+        <div className="flex flex-col gap-2 text-xs text-[#6B6B6B]">
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={reextract} disabled={!!file} onChange={(e) => setReextract(e.target.checked)} />
+            링크에서 본문 다시 가져오기
+          </label>
+          <label className="inline-flex items-center gap-2">
+            파일 교체:
+            <input type="file" accept=".pdf,.docx" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </label>
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="text-sm font-semibold px-4 py-2 rounded-lg border border-black/15 text-[#555555]">
+            취소
+          </button>
+          <button type="button" disabled={busy} onClick={save} className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#FF4103] text-white disabled:opacity-60">
+            {busy ? "저장하는 중…" : "저장"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

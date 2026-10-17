@@ -1,54 +1,10 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
 import { createClient } from "@/lib/supabase/server";
+import { MAX_CONTENT, MAX_FILE_SIZE, extractFromFile, extractFromUrl, fileTitle } from "@/lib/extract";
+import { cleanCategory, cleanSubcategory } from "@/lib/resource-fields";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-
-function stripHtml(html: string) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<\/(p|div|br|li|h[1-6]|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-async function extractFromUrl(url: string): Promise<{ text: string; pageTitle: string }> {
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; iid-web-bot/1.0)" } });
-  if (!res.ok) throw new Error(`링크를 불러오지 못했어요 (HTTP ${res.status})`);
-  const html = await res.text();
-  const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-  return { text: stripHtml(html), pageTitle: titleMatch ? titleMatch[1].trim() : "" };
-}
-
-async function extractFromFile(file: File): Promise<string> {
-  const name = file.name.toLowerCase();
-  const buffer = Buffer.from(await file.arrayBuffer());
-  if (name.endsWith(".pdf")) {
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return result.text;
-    } finally {
-      await parser.destroy();
-    }
-  }
-  if (name.endsWith(".docx")) {
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value;
-  }
-  throw new Error("워드(.docx) 또는 PDF 파일만 올릴 수 있어요.");
-}
+const COLUMNS = "id, title, url, category, subcategory, content, summary, created_at";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -62,6 +18,9 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const titleInput = (form.get("title") as string | null)?.trim() || "";
   const urlInput = (form.get("url") as string | null)?.trim() || "";
+  const summaryInput = (form.get("summary") as string | null)?.trim() || "";
+  const category = cleanCategory(form.get("category") as string | null);
+  const subcategory = cleanSubcategory(category, form.get("subcategory") as string | null);
   const file = form.get("file") as File | null;
 
   if (!urlInput && (!file || file.size === 0)) {
@@ -78,7 +37,7 @@ export async function POST(request: Request) {
   try {
     if (file && file.size > 0) {
       text = await extractFromFile(file);
-      pageTitle = file.name.replace(/\.(pdf|docx)$/i, "");
+      pageTitle = fileTitle(file);
       if (!storedUrl) {
         const path = `${user.id}/resource-${Date.now()}-${file.name}`;
         const { error: upErr } = await supabase.storage.from("attachments").upload(path, file);
@@ -105,13 +64,13 @@ export async function POST(request: Request) {
     .insert({
       title: titleInput || pageTitle || "제목 없음",
       url: storedUrl || null,
-      category: "기타",
-      subcategory: "",
-      content: text.slice(0, 20000),
-      summary: "",
+      category,
+      subcategory,
+      content: text.slice(0, MAX_CONTENT),
+      summary: summaryInput,
       created_by: user.id,
     })
-    .select("id, title, url, category, subcategory, content, summary, created_at")
+    .select(COLUMNS)
     .single();
 
   if (error || !data) {

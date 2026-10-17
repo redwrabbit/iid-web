@@ -203,24 +203,39 @@ export default function AdminInboxChat({
 
   async function sendReply() {
     const text = reply.trim();
-    if (!text || !activeId || !active || active.pending === 0) return;
+    if (!text || !activeId || !active) return;
     setBusy(true);
     setError("");
     const supabase = createClient();
     const now = new Date().toISOString();
-    const { error: err } = await supabase
-      .from("questions")
-      .update({ answer: text, answered_at: now })
-      .eq("user_id", activeId)
-      .is("answer", null);
-    setBusy(false);
-    if (err) {
-      setError("답변을 보내지 못했어요: " + err.message);
-      return;
+    if (active.pending > 0) {
+      const { error: err } = await supabase
+        .from("questions")
+        .update({ answer: text, answered_at: now })
+        .eq("user_id", activeId)
+        .is("answer", null);
+      setBusy(false);
+      if (err) {
+        setError("답변을 보내지 못했어요: " + err.message);
+        return;
+      }
+      setQuestions((prev) =>
+        prev.map((q) => (q.user_id === activeId && !q.answer ? { ...q, answer: text, answered_at: now } : q))
+      );
+    } else {
+      // 대기 중인 질문이 없어도 채팅처럼 먼저 메시지를 보낼 수 있다 (질문 칸이 빈 행으로 저장)
+      const { data, error: err } = await supabase
+        .from("questions")
+        .insert({ user_id: activeId, question: "", answer: text, answered_at: now })
+        .select("id, user_id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
+        .single();
+      setBusy(false);
+      if (err || !data) {
+        setError("메시지를 보내지 못했어요: " + (err?.message || "알 수 없는 오류"));
+        return;
+      }
+      setQuestions((prev) => [...prev, data as (typeof prev)[number]]);
     }
-    setQuestions((prev) =>
-      prev.map((q) => (q.user_id === activeId && !q.answer ? { ...q, answer: text, answered_at: now } : q))
-    );
     setReply("");
   }
 
@@ -336,39 +351,37 @@ export default function AdminInboxChat({
             </div>
 
             <div className="border-t border-black/10 px-5 py-3">
-              {active.pending === 0 ? (
-                <p className="text-xs text-[#9A9A9A]">현재 답변 대기 중인 질문이 없어요.</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <p className="text-[11px] text-[#9A9A9A]">
-                    보내는 답변은 {activeProfile?.name || "이 분"}의 대기 중인 질문 {active.pending}건에 함께 전달돼요.
-                  </p>
-                  <div className="flex gap-2 items-end">
-                    <textarea
-                      value={reply}
-                      onChange={(e) => setReply(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          sendReply();
-                        }
-                      }}
-                      rows={2}
-                      placeholder="답변을 입력하세요…"
-                      className="flex-1 border border-black/15 rounded-xl px-4 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
-                    />
-                    <button
-                      type="button"
-                      disabled={busy || !reply.trim()}
-                      onClick={sendReply}
-                      className="w-11 h-11 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
-                    >
-                      <Send className="w-4.5 h-4.5" strokeWidth={2.25} />
-                    </button>
-                  </div>
-                  {error && <p className="text-xs text-red-600">{error}</p>}
+              <div className="flex flex-col gap-2">
+                <p className="text-[11px] text-[#9A9A9A]">
+                  {active.pending > 0
+                    ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 대기 중인 질문 ${active.pending}건에 함께 전달돼요.`
+                    : "대기 중인 질문이 없어도 언제든 메시지를 보낼 수 있어요."}
+                </p>
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        sendReply();
+                      }
+                    }}
+                    rows={2}
+                    placeholder="메시지를 입력하세요…"
+                    className="flex-1 border border-black/15 rounded-xl px-4 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+                  />
+                  <button
+                    type="button"
+                    disabled={busy || !reply.trim()}
+                    onClick={sendReply}
+                    className="w-11 h-11 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+                  >
+                    <Send className="w-4.5 h-4.5" strokeWidth={2.25} />
+                  </button>
                 </div>
-              )}
+                {error && <p className="text-xs text-red-600">{error}</p>}
+              </div>
             </div>
           </>
         )}

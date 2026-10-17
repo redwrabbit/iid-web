@@ -156,3 +156,9 @@ create policy "anyone reads attachments" on storage.objects
 create policy "users upload own attachments" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'attachments' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 관리자가 대기 중인 질문 없이도 먼저 메시지를 보낼 수 있게 (채팅형)
+drop policy if exists "admin inserts messages" on public.questions;
+create policy "admin inserts messages" on public.questions
+  for insert to authenticated
+  with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
