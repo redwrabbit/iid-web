@@ -46,5 +46,7 @@ export default async function AskPage() {
     .select("id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
     .order("created_at", { ascending: true });
 
-  return <AskThread initialQuestions={(questions as Question[]) || []} userId={user.id} />;
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+
+  return <AskThread initialQuestions={(questions as Question[]) || []} userId={user.id} notifyEmail={profile?.notify_email !== false} />;
 }

@@ -180,3 +180,10 @@ create policy "admin writes site content" on public.site_content
   for all to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com')
   with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 질문/답변 이메일 알림: 회원이 끌 수 있게 (기본 켜짐)
+alter table public.profiles add column if not exists notify_email boolean not null default true;
+drop policy if exists "users update own profile" on public.profiles;
+create policy "users update own profile" on public.profiles
+  for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);

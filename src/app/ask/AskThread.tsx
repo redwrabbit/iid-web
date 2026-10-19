@@ -125,7 +125,16 @@ type ChatMsg = {
   time: string;
 };
 
-export default function AskThread({ initialQuestions, userId }: { initialQuestions: Question[]; userId: string }) {
+export default function AskThread({
+  initialQuestions,
+  userId,
+  notifyEmail = true,
+}: {
+  initialQuestions: Question[];
+  userId: string;
+  notifyEmail?: boolean;
+}) {
+  const [notify, setNotify] = useState(notifyEmail);
   const [items, setItems] = useState<Question[]>(initialQuestions);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -228,6 +237,7 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
     setBusy(false);
     if (!insErr && data) {
       setItems((prev) => [...prev, data as Question]);
+      fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "question" }) }).catch(() => {});
       setText("");
       setFiles([]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -241,6 +251,19 @@ export default function AskThread({ initialQuestions, userId }: { initialQuestio
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#6B6B6B]">
         이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#444444]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.
+        <label className="mt-2 flex items-center gap-2 text-[12px] text-[#555555] cursor-pointer w-fit">
+          <input
+            type="checkbox"
+            checked={notify}
+            onChange={async (e) => {
+              const next = e.target.checked;
+              setNotify(next);
+              const { error: err } = await createClient().from("profiles").update({ notify_email: next }).eq("id", userId);
+              if (err) setNotify(!next);
+            }}
+          />
+          답변이 달리면 이메일로 알려주세요
+        </label>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto" onClick={() => setOpenReactionFor(null)}>

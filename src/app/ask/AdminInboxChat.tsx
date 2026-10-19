@@ -236,6 +236,7 @@ export default function AdminInboxChat({
       }
       setQuestions((prev) => [...prev, data as (typeof prev)[number]]);
     }
+    fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "answer", userId: activeId }) }).catch(() => {});
     setReply("");
   }
 
