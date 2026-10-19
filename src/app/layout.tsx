@@ -20,6 +20,7 @@ const jua = Jua({
 
 const siteUrl = "https://iid-web.vercel.app";
 const title = "iid · HR Problem Solver";
+const shareImage = { url: "/share-v2", width: 1200, height: 630, alt: "HR Problem Solver iid" };
 const description = "조직과 사람에 대한 의사결정을 돕는 HR 자문·컨설팅. 서비스, HR 아티클/자료, 질문/상담.";
 
 export const metadata: Metadata = {
@@ -33,11 +34,13 @@ export const metadata: Metadata = {
     siteName: title,
     locale: "ko_KR",
     type: "website",
+    images: [shareImage],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
+    images: [shareImage.url],
   },
 };
 
