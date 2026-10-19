@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { sendMail, snip } from "@/lib/mail";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+// 이드가 알림을 받는 주소 (로그인 계정과 달라도 된다). 환경변수 NOTIFY_ADMIN_TO로 바꿀 수 있다.
+const NOTIFY_TO = process.env.NOTIFY_ADMIN_TO || "iid.solutor@gmail.com";
 const QUIET_MS = 10 * 60 * 1000; // 같은 사람에게 10분 안에는 한 통만
 
 // 질문/답변을 보낸 뒤 화면이 호출한다. 내용은 요청이 아니라 DB에서 읽어서(본인 권한으로) 보낸다.
@@ -18,7 +20,6 @@ export async function POST(request: Request) {
   const since = (iso: string) => Date.now() - new Date(iso).getTime();
 
   if (body.kind === "question" && !isAdmin) {
-    if (!ADMIN_EMAIL) return NextResponse.json({ sent: false });
     const { data: mine } = await supabase
       .from("questions")
       .select("question, created_at, attachments")
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     const who = [profile?.name || user.email, profile?.company].filter(Boolean).join(" · ");
     const files = Array.isArray(latest.attachments) ? latest.attachments.length : 0;
     const sent = await sendMail({
-      to: ADMIN_EMAIL,
+      to: NOTIFY_TO,
       subject: `새 질문이 도착했어요 — ${who}`,
       heading: `${who}님이 질문을 남겼어요`,
       body: snip(latest.question || "", 200) + (files ? `\n(첨부 ${files}개)` : ""),
