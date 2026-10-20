@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const { data: profile } = await supabase.from("profiles").select("name, company").eq("id", user.id).maybeSingle();
     const who = [profile?.name || user.email, profile?.company].filter(Boolean).join(" · ");
     const files = Array.isArray(latest.attachments) ? latest.attachments.length : 0;
-    const sent = await sendMail({
+    const { ok: sent } = await sendMail({
       to: NOTIFY_TO,
       subject: `새 질문이 도착했어요 — ${who}`,
       heading: `${who}님이 질문을 남겼어요`,
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     if (earlier?.answered_at && Date.parse(latest.answered_at) - Date.parse(earlier.answered_at) < QUIET_MS) {
       return NextResponse.json({ sent: false });
     }
-    const sent = await sendMail({
+    const { ok: sent } = await sendMail({
       to: profile.email,
       subject: "이드가 답변을 남겼어요",
       heading: `${profile.name ? profile.name + "님, " : ""}이드가 답변을 남겼어요`,

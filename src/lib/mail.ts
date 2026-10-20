@@ -9,7 +9,7 @@ export const snip = (s: string, n: number) => {
 
 export async function sendMail(opts: { to: string; subject: string; heading: string; body: string; cta: string; path: string }) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) return false;
+  if (!key) return { ok: false, detail: "RESEND_API_KEY가 설정되어 있지 않아요." };
   const from = process.env.NOTIFY_FROM || "iid <onboarding@resend.dev>";
   const url = SITE_URL + opts.path;
   const html = `<div style="font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
@@ -26,8 +26,13 @@ export async function sendMail(opts: { to: string; subject: string; heading: str
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to: [opts.to], subject: opts.subject, html, text }),
     });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return { ok: true, detail: "" };
+    const detail = `Resend ${res.status}: ${await res.text().catch(() => "")}`;
+    console.error("[mail] send failed", detail);
+    return { ok: false, detail };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "network error";
+    console.error("[mail] send error", detail);
+    return { ok: false, detail };
   }
 }
