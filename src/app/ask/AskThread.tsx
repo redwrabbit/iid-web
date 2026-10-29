@@ -487,7 +487,7 @@ export default function AskThread({
     return { label: openThread.field === "question" ? "내 질문" : "이드의 답변", text: m.text, attachments: m.attachments, time: m.time };
   }, [openThread, chatMsgs]);
 
-  const [threadW, dragThreadW] = useResizableWidth("iid_ask_thread_w", 380, 80, Infinity);
+  const [threadW, dragThreadW] = useResizableWidth("iid_ask_thread_w", 380, 300, Infinity);
 
   return (
     <div className="flex-1 min-h-0 flex">

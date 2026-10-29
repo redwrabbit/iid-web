@@ -280,8 +280,8 @@ export default function AdminInboxChat({
     return { label: openThread.field === "question" ? "질문자" : "이드", text: m.text, attachments: m.attachments, time: m.time };
   }, [openThread, chatMsgs]);
 
-  const [sidebarW, dragSidebarW] = useResizableWidth("iid_admin_inbox_sidebar_w", 260, 80, Infinity);
-  const [threadW, dragThreadW] = useResizableWidth("iid_admin_inbox_thread_w", 380, 80, Infinity);
+  const [sidebarW, dragSidebarW] = useResizableWidth("iid_admin_inbox_sidebar_w", 260, 220, Infinity);
+  const [threadW, dragThreadW] = useResizableWidth("iid_admin_inbox_thread_w", 380, 300, Infinity);
 
   if (threads.length === 0) {
     return <p className="text-sm text-[#9A9A9A] text-center py-10">아직 들어온 질문이 없어요.</p>;
