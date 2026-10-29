@@ -187,3 +187,32 @@ drop policy if exists "users update own profile" on public.profiles;
 create policy "users update own profile" on public.profiles
   for update to authenticated
   using (auth.uid() = id) with check (auth.uid() = id);
+
+-- 질문/답변 말풍선 하나하나에 슬랙처럼 달 수 있는 쓰레드 답글
+create table if not exists public.message_replies (
+  id uuid primary key default gen_random_uuid(),
+  question_id uuid references public.questions(id) on delete cascade not null,
+  field text not null check (field in ('question', 'answer')),
+  sender text not null check (sender in ('admin', 'user')),
+  text text not null default '',
+  attachments jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.message_replies enable row level security;
+
+create policy "owner reads own message replies" on public.message_replies
+  for select to authenticated
+  using (exists (select 1 from public.questions q where q.id = question_id and q.user_id = auth.uid()));
+
+create policy "admin reads all message replies" on public.message_replies
+  for select to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+create policy "owner inserts own message replies" on public.message_replies
+  for insert to authenticated
+  with check (sender = 'user' and exists (select 1 from public.questions q where q.id = question_id and q.user_id = auth.uid()));
+
+create policy "admin inserts message replies" on public.message_replies
+  for insert to authenticated
+  with check (sender = 'admin' and auth.jwt() ->> 'email' = 'oldddong@gmail.com');

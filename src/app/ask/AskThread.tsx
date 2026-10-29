@@ -1,10 +1,117 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus } from "lucide-react";
+import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
+
+export type MessageReply = {
+  id: string;
+  question_id: string;
+  field: "question" | "answer";
+  sender: "user" | "admin";
+  text: string;
+  attachments?: Attachment[];
+  created_at: string;
+};
+
+function fmtThreadTime(t: string) {
+  return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// 질문/답변 말풍선 하나에 슬랙처럼 달리는 쓰레드 답글 패널. 관리자/질문자 화면에서 공용으로 씁니다.
+export function ThreadPanel({
+  viewerRole,
+  parent,
+  replies,
+  busy,
+  error,
+  onSend,
+  onClose,
+}: {
+  viewerRole: "admin" | "user";
+  parent: { label: string; text: string; attachments?: Attachment[]; time: string };
+  replies: MessageReply[];
+  busy: boolean;
+  error: string;
+  onSend: (text: string) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState("");
+  function submit() {
+    const v = text.trim();
+    if (!v || busy) return;
+    onSend(v);
+    setText("");
+  }
+  return (
+    <div className="w-[340px] sm:w-[380px] shrink-0 border-l border-black/10 flex flex-col min-h-0 bg-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
+        <div className="text-sm font-bold text-[#111111]">스레드</div>
+        <button type="button" onClick={onClose} aria-label="닫기" className="p-1 rounded-md text-[#B0B0B0] hover:text-[#111111] hover:bg-[#F4F4F2]">
+          <X className="w-4 h-4" strokeWidth={2} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+        <div className="pb-3 border-b border-black/8">
+          <div className="text-[11px] text-[#9A9A9A] mb-1">
+            {parent.label} · {fmtThreadTime(parent.time)}
+          </div>
+          {parent.text && <div className="text-sm whitespace-pre-wrap text-[#111111]">{parent.text}</div>}
+          {parent.attachments && parent.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {parent.attachments.map((a, i) => (
+                <div key={i} className="bg-[#F4F4F2] rounded-xl px-2.5 py-2 text-[#111111]">
+                  <AttachmentView a={a} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {replies.length === 0 && <p className="text-xs text-[#9A9A9A] text-center py-4">아직 답글이 없어요.</p>}
+        {replies.map((r) => (
+          <div key={r.id} className={`flex flex-col gap-1 ${r.sender === viewerRole ? "items-end" : "items-start"}`}>
+            <div
+              className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
+                r.sender === viewerRole ? "bg-[#FF4103] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
+              }`}
+            >
+              {r.text}
+            </div>
+            <div className="text-[10px] text-[#B0B0B0]">{fmtThreadTime(r.created_at)}</div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-black/10 px-4 py-3">
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            rows={2}
+            placeholder="답글 남기기…"
+            className="flex-1 border border-black/15 rounded-xl px-3 py-2 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+          />
+          <button
+            type="button"
+            disabled={busy || !text.trim()}
+            onClick={submit}
+            className="w-10 h-10 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+          >
+            <Send className="w-4 h-4" strokeWidth={2.25} />
+          </button>
+        </div>
+        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      </div>
+    </div>
+  );
+}
 
 export type Question = {
   id: string;
@@ -127,10 +234,12 @@ type ChatMsg = {
 
 export default function AskThread({
   initialQuestions,
+  initialReplies = [],
   userId,
   notifyEmail = true,
 }: {
   initialQuestions: Question[];
+  initialReplies?: MessageReply[];
   userId: string;
   notifyEmail?: boolean;
 }) {
@@ -151,6 +260,35 @@ export default function AskThread({
     );
     const supabase = createClient();
     await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
+  }
+
+  const [replies, setReplies] = useState<MessageReply[]>(initialReplies);
+  const [openThread, setOpenThread] = useState<{ questionId: string; field: "question" | "answer" } | null>(null);
+  const [threadBusy, setThreadBusy] = useState(false);
+  const [threadError, setThreadError] = useState("");
+
+  function repliesFor(questionId: string, field: "question" | "answer") {
+    return replies
+      .filter((r) => r.question_id === questionId && r.field === field)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+
+  async function sendThreadReply(value: string) {
+    if (!openThread) return;
+    setThreadBusy(true);
+    setThreadError("");
+    const supabase = createClient();
+    const { data, error: err } = await supabase
+      .from("message_replies")
+      .insert({ question_id: openThread.questionId, field: openThread.field, sender: "user", text: value })
+      .select("id, question_id, field, sender, text, attachments, created_at")
+      .single();
+    setThreadBusy(false);
+    if (err || !data) {
+      setThreadError("답글을 보내지 못했어요: " + (err?.message || "알 수 없는 오류"));
+      return;
+    }
+    setReplies((prev) => [...prev, data as MessageReply]);
   }
 
   const chatMsgs = useMemo<ChatMsg[]>(() => {
@@ -246,8 +384,33 @@ export default function AskThread({
     }
   }
 
+  function replyTrigger(questionId: string, field: "question" | "answer", align: "start" | "end") {
+    const count = repliesFor(questionId, field).length;
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenReactionFor(null);
+          setOpenThread({ questionId, field });
+        }}
+        className={`text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline ${align === "end" ? "self-end" : "self-start"}`}
+      >
+        {count > 0 ? `${count}개의 댓글` : "답글달기"}
+      </button>
+    );
+  }
+
+  const openThreadParent = useMemo(() => {
+    if (!openThread) return null;
+    const m = chatMsgs.find((c) => c.questionId === openThread.questionId && c.kind === openThread.field);
+    if (!m) return null;
+    return { label: openThread.field === "question" ? "내 질문" : "이드의 답변", text: m.text, attachments: m.attachments, time: m.time };
+  }, [openThread, chatMsgs]);
+
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 min-h-0 flex">
+    <div className="flex-1 min-w-0 flex flex-col min-h-0">
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#6B6B6B]">
         이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#444444]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.
@@ -298,6 +461,7 @@ export default function AskThread({
                     onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
                     onPick={(emoji) => setReaction(m.questionId, "question", emoji)}
                   />
+                  {replyTrigger(m.questionId, "question", "end")}
                 </div>
               );
             }
@@ -315,6 +479,7 @@ export default function AskThread({
                     onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
                     onPick={(emoji) => setReaction(m.questionId, "answer", emoji)}
                   />
+                  {replyTrigger(m.questionId, "answer", "start")}
                 </div>
               );
             }
@@ -387,6 +552,18 @@ export default function AskThread({
           </div>
         </div>
       </form>
+    </div>
+    {openThread && openThreadParent && (
+      <ThreadPanel
+        viewerRole="user"
+        parent={openThreadParent}
+        replies={repliesFor(openThread.questionId, openThread.field)}
+        busy={threadBusy}
+        error={threadError}
+        onSend={sendThreadReply}
+        onClose={() => setOpenThread(null)}
+      />
+    )}
     </div>
   );
 }

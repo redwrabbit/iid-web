@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import AskThread, { type Question } from "./AskThread";
+import AskThread, { type Question, type MessageReply } from "./AskThread";
 import AdminInboxChat, { type AdminQuestion } from "./AdminInboxChat";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
@@ -31,22 +31,44 @@ export default async function AskPage() {
   }
 
   if (user.email === ADMIN_EMAIL) {
-    const [{ data: questions }, { data: profiles }] = await Promise.all([
+    const [{ data: questions }, { data: profiles }, { data: replies }] = await Promise.all([
       supabase
         .from("questions")
         .select("id, user_id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
         .order("created_at", { ascending: true }),
       supabase.from("profiles").select("id, email, name, company, role"),
+      supabase
+        .from("message_replies")
+        .select("id, question_id, field, sender, text, attachments, created_at")
+        .order("created_at", { ascending: true }),
     ]);
-    return <AdminInboxChat initialQuestions={(questions as AdminQuestion[]) || []} profiles={profiles || []} />;
+    return (
+      <AdminInboxChat
+        initialQuestions={(questions as AdminQuestion[]) || []}
+        initialReplies={(replies as MessageReply[]) || []}
+        profiles={profiles || []}
+      />
+    );
   }
 
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
-    .order("created_at", { ascending: true });
+  const [{ data: questions }, { data: profile }, { data: replies }] = await Promise.all([
+    supabase
+      .from("questions")
+      .select("id, question, answer, answered_at, created_at, attachments, question_reaction, answer_reaction")
+      .order("created_at", { ascending: true }),
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("message_replies")
+      .select("id, question_id, field, sender, text, attachments, created_at")
+      .order("created_at", { ascending: true }),
+  ]);
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-
-  return <AskThread initialQuestions={(questions as Question[]) || []} userId={user.id} notifyEmail={profile?.notify_email !== false} />;
+  return (
+    <AskThread
+      initialQuestions={(questions as Question[]) || []}
+      initialReplies={(replies as MessageReply[]) || []}
+      userId={user.id}
+      notifyEmail={profile?.notify_email !== false}
+    />
+  );
 }
