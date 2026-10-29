@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,6 +20,78 @@ function fmtThreadTime(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// 칸 사이 경계선을 드래그로 당기면 폭이 바뀝니다. onDrag는 마우스가 움직인 만큼(px)을 넘겨줍니다.
+export function DragHandle({ onDrag }: { onDrag: (deltaPx: number) => void }) {
+  const draggingRef = useRef(false);
+  const lastXRef = useRef(0);
+
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    draggingRef.current = true;
+    lastXRef.current = e.clientX;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!draggingRef.current) return;
+      const delta = ev.clientX - lastXRef.current;
+      lastXRef.current = ev.clientX;
+      onDrag(delta);
+    }
+    function onMouseUp() {
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }
+
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      role="separator"
+      aria-orientation="vertical"
+      className="w-1 shrink-0 cursor-col-resize bg-black/5 hover:bg-[#FF4103]/40 active:bg-[#FF4103]/60 transition-colors"
+    />
+  );
+}
+
+export function useResizableWidth(storageKey: string, initial: number, min: number, max: number) {
+  const [width, setWidth] = useState(initial);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from localStorage, a browser-only external store
+          setWidth(Math.min(max, Math.max(min, n)));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function onDrag(deltaPx: number, sign: 1 | -1 = 1) {
+    setWidth((w) => {
+      const next = Math.min(max, Math.max(min, w + sign * deltaPx));
+      try {
+        localStorage.setItem(storageKey, String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }
+
+  return [width, onDrag] as const;
+}
+
 // 질문/답변 말풍선 하나에 슬랙처럼 달리는 쓰레드 답글 패널. 관리자/질문자 화면에서 공용으로 씁니다.
 export function ThreadPanel({
   viewerRole,
@@ -29,6 +101,7 @@ export function ThreadPanel({
   error,
   onSend,
   onClose,
+  width = 380,
 }: {
   viewerRole: "admin" | "user";
   parent: { label: string; text: string; attachments?: Attachment[]; time: string };
@@ -37,6 +110,7 @@ export function ThreadPanel({
   error: string;
   onSend: (text: string) => void;
   onClose: () => void;
+  width?: number;
 }) {
   const [text, setText] = useState("");
   function submit() {
@@ -46,7 +120,7 @@ export function ThreadPanel({
     setText("");
   }
   return (
-    <div className="w-[340px] sm:w-[380px] shrink-0 border-l border-black/10 flex flex-col min-h-0 bg-white">
+    <div style={{ width }} className="shrink-0 border-l border-black/10 flex flex-col min-h-0 bg-white">
       <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
         <div className="text-sm font-bold text-[#111111]">스레드</div>
         <button type="button" onClick={onClose} aria-label="닫기" className="p-1 rounded-md text-[#B0B0B0] hover:text-[#111111] hover:bg-[#F4F4F2]">
@@ -408,6 +482,8 @@ export default function AskThread({
     return { label: openThread.field === "question" ? "내 질문" : "이드의 답변", text: m.text, attachments: m.attachments, time: m.time };
   }, [openThread, chatMsgs]);
 
+  const [threadW, dragThreadW] = useResizableWidth("iid_ask_thread_w", 380, 280, 640);
+
   return (
     <div className="flex-1 min-h-0 flex">
     <div className="flex-1 min-w-0 flex flex-col min-h-0">
@@ -554,15 +630,19 @@ export default function AskThread({
       </form>
     </div>
     {openThread && openThreadParent && (
+      <>
+      <DragHandle onDrag={(d) => dragThreadW(d, -1)} />
       <ThreadPanel
         viewerRole="user"
         parent={openThreadParent}
+        width={threadW}
         replies={repliesFor(openThread.questionId, openThread.field)}
         busy={threadBusy}
         error={threadError}
         onSend={sendThreadReply}
         onClose={() => setOpenThread(null)}
       />
+      </>
     )}
     </div>
   );

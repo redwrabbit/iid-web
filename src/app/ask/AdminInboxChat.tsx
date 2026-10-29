@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, EyeOff, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AttachmentView, ReactionTrigger, ThreadPanel, type Question, type MessageReply } from "./AskThread";
+import { AttachmentView, ReactionTrigger, ThreadPanel, DragHandle, useResizableWidth, type Question, type MessageReply } from "./AskThread";
 
 type Profile = { id: string; email: string; name: string; company: string | null; role: string | null };
 export type AdminQuestion = Question & { user_id: string };
@@ -280,13 +280,16 @@ export default function AdminInboxChat({
     return { label: openThread.field === "question" ? "질문자" : "이드", text: m.text, attachments: m.attachments, time: m.time };
   }, [openThread, chatMsgs]);
 
+  const [sidebarW, dragSidebarW] = useResizableWidth("iid_admin_inbox_sidebar_w", 260, 200, 480);
+  const [threadW, dragThreadW] = useResizableWidth("iid_admin_inbox_thread_w", 380, 280, 640);
+
   if (threads.length === 0) {
     return <p className="text-sm text-[#9A9A9A] text-center py-10">아직 들어온 질문이 없어요.</p>;
   }
 
   return (
     <div className="flex-1 min-h-0 flex">
-      <aside className="w-[260px] shrink-0 border-r border-black/10 overflow-y-auto flex flex-col">
+      <aside style={{ width: sidebarW }} className="shrink-0 border-r border-black/10 overflow-y-auto flex flex-col">
         {visibleThreads.map((t) => {
           const p = profileMap.get(t.userId);
           const activeThread = t.userId === activeId;
@@ -337,6 +340,8 @@ export default function AdminInboxChat({
           </button>
         )}
       </aside>
+
+      <DragHandle onDrag={dragSidebarW} />
 
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {active && (
@@ -443,15 +448,19 @@ export default function AdminInboxChat({
       </div>
 
       {openThread && openThreadParent && (
+        <>
+        <DragHandle onDrag={(d) => dragThreadW(d, -1)} />
         <ThreadPanel
           viewerRole="admin"
           parent={openThreadParent}
+          width={threadW}
           replies={repliesFor(openThread.questionId, openThread.field)}
           busy={threadBusy}
           error={threadError}
           onSend={sendThreadReply}
           onClose={() => setOpenThread(null)}
         />
+        </>
       )}
     </div>
   );
