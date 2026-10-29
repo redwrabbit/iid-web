@@ -119,6 +119,10 @@ export function ThreadPanel({
     onSend(v);
     setText("");
   }
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [replies.length]);
   return (
     <div style={{ width }} className="shrink-0 border-l border-black/10 flex flex-col min-h-0 bg-white">
       <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
@@ -156,6 +160,7 @@ export function ThreadPanel({
             <div className="text-[10px] text-[#B0B0B0]">{fmtThreadTime(r.created_at)}</div>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
       <div className="border-t border-black/10 px-4 py-3">
         <div className="flex gap-2 items-end">
@@ -482,7 +487,7 @@ export default function AskThread({
     return { label: openThread.field === "question" ? "내 질문" : "이드의 답변", text: m.text, attachments: m.attachments, time: m.time };
   }, [openThread, chatMsgs]);
 
-  const [threadW, dragThreadW] = useResizableWidth("iid_ask_thread_w", 380, 280, 640);
+  const [threadW, dragThreadW] = useResizableWidth("iid_ask_thread_w", 380, 80, Infinity);
 
   return (
     <div className="flex-1 min-h-0 flex">
