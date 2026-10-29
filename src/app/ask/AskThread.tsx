@@ -491,7 +491,7 @@ export default function AskThread({
 
   return (
     <div className="flex-1 min-h-0 flex">
-    <div className="flex-1 min-w-0 flex flex-col min-h-0">
+    <div className="flex-1 min-w-[300px] flex flex-col min-h-0">
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#6B6B6B]">
         이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#444444]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.

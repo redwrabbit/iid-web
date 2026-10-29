@@ -343,7 +343,7 @@ export default function AdminInboxChat({
 
       <DragHandle onDrag={dragSidebarW} />
 
-      <div className="flex-1 min-w-0 flex flex-col min-h-0">
+      <div className="flex-1 min-w-[300px] flex flex-col min-h-0">
         {active && (
           <>
             <div className="border-b border-black/10 px-5 py-3">
