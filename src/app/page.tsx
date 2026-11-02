@@ -41,23 +41,27 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="wrap home__next">
-          <h2 className="home__next-h">어디서부터 시작할까요</h2>
-          <div className="home__next-grid">
-            {NEXT_STEPS.map((s) => (
-              <Link key={s.href} href={s.href} className={`home__next-item home__next-item--${s.variant}`}>
-                {s.label}
-              </Link>
-            ))}
+        <div className="wrap home__bottom">
+          <div className="home__bottom-col">
+            <h2 className="home__bottom-h">어디서부터 시작할까요</h2>
+            <div className="home__next-grid">
+              {NEXT_STEPS.map((s) => (
+                <Link key={s.href} href={s.href} className={`home__next-item home__next-item--${s.variant}`}>
+                  {s.label}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="wrap home__foot">
-          <a href="mailto:iid.solutor@gmail.com">iid.solutor@gmail.com</a>
-          <a href="https://www.instagram.com/iid_hrer" target="_blank" rel="noopener">Instagram</a>
-          <a href="https://www.youtube.com/@iid_story" target="_blank" rel="noopener">YouTube</a>
-          <a href="https://brunch.co.kr/@iid-hr" target="_blank" rel="noopener">Brunch</a>
-          <a href="https://www.linkedin.com/in/shineastkim/" target="_blank" rel="noopener">LinkedIn</a>
+          <div className="home__bottom-col">
+            <h2 className="home__bottom-h">연락하기</h2>
+            <div className="home__foot">
+              <a href="mailto:iid.solutor@gmail.com">iid.solutor@gmail.com</a>
+              <a href="https://www.instagram.com/iid_hrer" target="_blank" rel="noopener">Instagram</a>
+              <a href="https://www.youtube.com/@iid_story" target="_blank" rel="noopener">YouTube</a>
+              <a href="https://brunch.co.kr/@iid-hr" target="_blank" rel="noopener">Brunch</a>
+              <a href="https://www.linkedin.com/in/shineastkim/" target="_blank" rel="noopener">LinkedIn</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
