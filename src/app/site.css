@@ -653,9 +653,9 @@ main{scroll-behavior:smooth}
 
   /* 로고+글자를 하나의 검은 박스로. 박스는 내용 크기만큼만(폭 전체로 늘리지 않음) */
   .home__id{width:fit-content;max-width:100%;display:flex;align-items:center;gap:16px;border:3px solid var(--logo-black);border-radius:28px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:16px clamp(18px,2vw,24px);overflow:hidden}
-  .home__mark{flex:none;height:clamp(76px,8vw,108px);width:clamp(76px,8vw,108px);border-radius:50%;object-fit:cover}
+  .home__mark{flex:none;height:clamp(92px,9.6vw,132px);width:clamp(92px,9.6vw,132px);border-radius:50%;object-fit:cover}
   /* 글자는 "HR Problem / Solver"처럼 두 줄로 자연스럽게 줄바꿈 */
-  .home__brand{display:block;max-width:clamp(150px,15vw,230px);color:#fff;font:800 clamp(20px,2.4vw,28px)/1.25 var(--sans);letter-spacing:-.01em;white-space:normal}
+  .home__brand{display:block;max-width:clamp(170px,17vw,260px);color:#fff;font:800 clamp(24px,2.9vw,34px)/1.25 var(--sans);letter-spacing:-.01em;white-space:normal}
 
   /* ul 자체는 박스를 만들지 않고, li들이 .home__side의 flex 아이템으로 바로 들어가게 한다 —
      그래야 justify-content:space-between이 글자박스~말풍선4개 사이 간격을 고르게 나눠준다 */
@@ -676,10 +676,12 @@ main{scroll-behavior:smooth}
 .home__credit{margin:0;color:var(--muted);font:600 14.5px/1.6 var(--sans)}
 
 /* 홈 맨 아래: 왼쪽 CTA 버튼 + 오른쪽 연락 아이콘을 한 줄에, 너무 벌어지지 않게 */
-.home__bottom{width:100%;padding-top:128px;padding-bottom:88px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:40px}
+/* .wrap이 .site-root 안에 중첩되어 있어 .site-root .wrap(클래스 2개)이 되는데, 여기 padding-top/bottom:0이 있어서
+   같은 클래스 1개짜리 선택자로는 못 이긴다. 그래서 .site-root를 붙여 특이도를 맞춘다. */
+.site-root .home__bottom{width:100%;padding-top:128px;padding-bottom:128px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:40px}
 .home__bottom-col{width:fit-content;max-width:100%;display:flex;align-items:center}
 .home__bottom-h{font:400 clamp(19px,2vw,23px)/1.3 var(--serif);color:var(--ink);margin-bottom:16px}
-@media (max-width:760px){.home__bottom{gap:36px;padding-top:56px}}
+@media (max-width:760px){.site-root .home__bottom{gap:36px;padding-top:56px}}
 
 /* 3개 버튼: 모두 같은 회색, 폭은 글자만큼만(좁게), 한 줄로 */
 .home__next-grid{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto}
