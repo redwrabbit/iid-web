@@ -90,8 +90,7 @@ export default function Home() {
 
         <div className="wrap home__bottom">
           <div className="home__bottom-col">
-            <h2 className="home__bottom-h">어디서부터 시작할까요</h2>
-            <div className="home__next-grid">
+            <div className="home__next-grid" aria-label="어디서부터 시작할까요">
               {NEXT_STEPS.map((s) => (
                 <Link key={s.href} href={s.href} className="home__next-item">
                   {s.label}
@@ -100,8 +99,7 @@ export default function Home() {
             </div>
           </div>
           <div className="home__bottom-col">
-            <h2 className="home__bottom-h">연락하기</h2>
-            <div className="home__contact">
+            <div className="home__contact" aria-label="연락하기">
               {CONTACT_LINKS.map((c) => (
                 <a
                   key={c.href}
