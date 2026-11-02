@@ -651,10 +651,10 @@ main{scroll-behavior:smooth}
   /* 좌(소개 글)/우(로고+말풍선) 높이를 맞춘다: 오른쪽 내용을 위~아래 끝까지 펼쳐서 왼쪽과 같은 높이로 */
   .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
 
-  /* 로고+글자를 다시 하나의 검은 박스로 합친다 — 크게 */
-  .home__id{width:100%;display:flex;align-items:center;gap:18px;border:3px solid var(--logo-black);border-radius:28px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:18px clamp(18px,2vw,26px);overflow:hidden}
-  .home__mark{flex:none;height:clamp(76px,8vw,112px);width:clamp(76px,8vw,112px);border-radius:50%;object-fit:cover}
-  .home__brand{display:block;min-width:0;color:#fff;font:800 clamp(20px,2.4vw,29px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+  /* 로고+글자를 다시 하나의 검은 박스로 합친다 — 박스 안에 꽉 차게 크게 */
+  .home__id{width:100%;display:flex;align-items:center;gap:18px;border:3px solid var(--logo-black);border-radius:28px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:14px clamp(16px,1.8vw,22px);overflow:hidden}
+  .home__mark{flex:none;height:clamp(84px,9vw,128px);width:clamp(84px,9vw,128px);border-radius:50%;object-fit:cover}
+  .home__brand{display:block;min-width:0;color:#fff;font:800 clamp(22px,2.9vw,34px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
 
   /* ul 자체는 박스를 만들지 않고, li들이 .home__side의 flex 아이템으로 바로 들어가게 한다 —
      그래야 justify-content:space-between이 글자박스~말풍선4개 사이 간격을 고르게 나눠준다 */
@@ -676,15 +676,15 @@ main{scroll-behavior:smooth}
 .home__main{display:flex;flex-direction:column;justify-content:space-between}
 .home__credit{margin:0;color:var(--muted);font:600 14.5px/1.6 var(--sans)}
 
-/* 홈 맨 아래: "어디서부터 시작할까요"(왼쪽) + "연락하기"(오른쪽)를 양 끝으로 벌려서 배치 */
-.home__bottom{width:100%;padding-top:96px;padding-bottom:88px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:start;gap:80px}
-.home__bottom-col{width:fit-content;max-width:100%}
+/* 홈 맨 아래: 왼쪽 CTA 버튼 + 오른쪽 연락 아이콘을 한 줄에, 너무 벌어지지 않게 */
+.home__bottom{width:100%;padding-top:140px;padding-bottom:88px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:40px}
+.home__bottom-col{width:fit-content;max-width:100%;display:flex;align-items:center}
 .home__bottom-h{font:400 clamp(19px,2vw,23px)/1.3 var(--serif);color:var(--ink);margin-bottom:16px}
 @media (max-width:760px){.home__bottom{gap:36px;padding-top:56px}}
 
 /* 3개 버튼: 모두 같은 회색, 폭은 글자만큼만(좁게), 한 줄로 */
 .home__next-grid{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto}
-.home__next-item{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border-radius:12px;text-decoration:none;background:var(--logo-black);color:#fff;font:700 14.5px/1.3 var(--sans);letter-spacing:-.01em;transition:transform var(--dur-press) var(--ease-out),opacity var(--dur-hover) var(--ease-out)}
+a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border-radius:12px;text-decoration:none;background:var(--logo-black);color:#fff;font:700 14.5px/1.3 var(--sans);letter-spacing:-.01em;transition:transform var(--dur-press) var(--ease-out),opacity var(--dur-hover) var(--ease-out)}
 .home__next-item:active{transform:scale(.96)}
 @media (hover:hover) and (pointer:fine){.home__next-item:hover{opacity:.7}}
 
