@@ -406,9 +406,6 @@ h1{letter-spacing:-.01em}
 
 .home__quotes{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .home__quotes li{background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:var(--shadow-pop);padding:16px 24px;border-radius:26px 26px 26px 6px;font:400 clamp(18px,min(2.1vw,3vh),24px)/1.4 var(--serif);max-width:100%}
-.home__foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.home__foot a{color:var(--ink);text-decoration:none;min-height:42px;display:inline-flex;align-items:center;padding:0 18px;border:2px solid var(--ink);border-radius:999px;font:700 14.5px var(--sans);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
-@media (hover:hover) and (pointer:fine){.home__foot a:hover{background:var(--ink);color:#fff}}
 
 
 .foot__h{font-size:clamp(22px,2.6vw,28px);margin-bottom:6px}
@@ -650,20 +647,22 @@ main{scroll-behavior:smooth}
 /* 홈: 캐릭터 로고(원형)와 "HR Problem Solver" 글자박스를 분리하고, 그 아래 말풍선을 한 줄씩 쌓는다. */
 .site-root{
   .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:stretch}
-  /* 좌(소개 글)/우(로고+말풍선) 높이를 맞추고, 오른쪽은 그 높이 안에서 세로 가운데 정렬 */
-  .home__side{width:fit-content;max-width:100%;display:flex;flex-direction:column;justify-content:center;gap:18px}
+  /* 좌(소개 글)/우(로고+말풍선) 높이를 맞춘다: 오른쪽 내용을 위~아래 끝까지 펼쳐서 왼쪽과 같은 높이로 */
+  .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
 
-  .home__id{display:flex;align-items:stretch;gap:14px}
+  .home__id{display:flex;align-items:stretch;gap:14px;width:100%}
   /* 로고: 원래 로고 이미지(검정 배경)를 원형으로 자른다 */
   .home__logo-box{flex:none;width:clamp(84px,9vw,118px);aspect-ratio:1/1;border:3px solid var(--logo-black);border-radius:50%;background:var(--logo-black);overflow:hidden;display:flex}
   .home__mark{width:100%;height:100%;object-fit:cover}
-  /* 글자 박스: 로고와 분리된 별도의 박스. 높이는 로고 박스에 맞춰 늘어나고(align-items:stretch), 글자 크기도 그만큼 키운다 */
-  .home__brand-box{flex:none;display:flex;align-items:center;border:3px solid var(--ink);border-radius:16px;background:var(--orange);box-shadow:var(--shadow-pop);padding:0 clamp(20px,2.4vw,30px)}
-  .home__brand-box span{display:block;color:var(--ink);font:800 clamp(22px,3.1vw,34px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+  /* 글자 박스: 로고와 분리된 별도의 검은 박스. 나머지 폭을 모두 채우고(flex:1), 높이도 로고 박스에 맞춰 늘어난다 */
+  .home__brand-box{flex:1;display:flex;align-items:center;border:3px solid var(--ink);border-radius:16px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:0 clamp(20px,2.4vw,30px)}
+  .home__brand-box span{display:block;color:#fff;font:800 clamp(22px,3.1vw,34px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
 
-  .home__quotes{flex:none;gap:10px}
-  /* 글자는 가장 긴 문장이 한 줄에 들어가는 만큼 키운다 (화면 폭에 비례) */
-  .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:10px 20px;font-size:clamp(14px,min(calc((min(100vw,1040px) - 184px) / 36),2.8vh),24px);line-height:1.4}
+  /* ul 자체는 박스를 만들지 않고, li들이 .home__side의 flex 아이템으로 바로 들어가게 한다 —
+     그래야 justify-content:space-between이 로고박스~말풍선4개 사이 간격을 고르게 나눠준다 */
+  .home__quotes{display:contents}
+  /* 말풍선 폭을 로고+글자박스와 같은 폭으로 맞춘다. 테두리는 없애고, 글자는 화면 폭에 비례해 키운다 */
+  .home__quotes li{width:100%;max-width:100%;border:none;box-shadow:none;padding:12px 20px;font-size:clamp(16px,min(calc((min(100vw,1040px) - 184px) / 30),3.2vh),28px);line-height:1.4}
   @media (max-width:760px){
     /* 모바일: 1열로 바꾸고, 로고+글자박스를 맨 위로 올려 그 아래 소개 글이 이어지게 한다 */
     .home__grid{grid-template-columns:minmax(0,1fr);align-items:start}
@@ -682,15 +681,18 @@ main{scroll-behavior:smooth}
 .home__bottom-h{font:400 clamp(19px,2vw,23px)/1.3 var(--serif);color:var(--ink);margin-bottom:16px}
 @media (max-width:760px){.home__bottom{grid-template-columns:minmax(0,1fr);gap:36px;padding-top:56px}}
 
-.home__next-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.home__next-item{display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:10px 14px;border-radius:14px;text-decoration:none;font:700 15px/1.3 var(--sans);letter-spacing:-.01em;transition:transform var(--dur-press) var(--ease-out),opacity var(--dur-hover) var(--ease-out)}
+/* 3개 버튼: 모두 같은 회색, 폭은 글자만큼만(좁게), 한 줄로 */
+.home__next-grid{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto}
+.home__next-item{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border-radius:12px;text-decoration:none;background:var(--line);color:var(--ink);font:700 14.5px/1.3 var(--sans);letter-spacing:-.01em;transition:transform var(--dur-press) var(--ease-out),opacity var(--dur-hover) var(--ease-out)}
 .home__next-item:active{transform:scale(.96)}
-.home__next-item.home__next-item--ask{background:var(--orange);color:var(--ink)}
-.home__next-item.home__next-item--services{background:var(--logo-black);color:#fff}
-.home__next-item.home__next-item--about{background:var(--red);color:#fff}
-@media (hover:hover) and (pointer:fine){.home__next-item:hover{opacity:.85}}
-@media (max-width:480px){.home__next-item{font-size:13.5px;padding:10px 8px}}
-@media (max-width:760px){.home__next-grid{grid-template-columns:minmax(0,1fr)}}
+@media (hover:hover) and (pointer:fine){.home__next-item:hover{opacity:.7}}
+
+/* 연락하기: 글자 대신 원형 아이콘 버튼 5개, 한 줄로 */
+.home__contact{display:flex;flex-wrap:nowrap;gap:10px;align-items:center;overflow-x:auto}
+.home__contact-item{flex:none;width:46px;height:46px;border-radius:50%;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;color:var(--ink);overflow:hidden;transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.home__contact-item svg{width:20px;height:20px}
+.home__contact-item img{width:100%;height:100%;object-fit:cover}
+@media (hover:hover) and (pointer:fine){.home__contact-item:hover{background:var(--ink);color:#fff}}
 
 /* ───── v3: 같은 톤(흰 바탕 + 검정 선 + 주황) · 섹션 제목 · 서비스/플랜 정리 · 이드 소개 ───── */
 .site-root{
