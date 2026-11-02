@@ -8,21 +8,9 @@ export const metadata: Metadata = {
 };
 
 const NEXT_STEPS = [
-  {
-    href: "/ask",
-    title: "궁금한 걸 바로 물어보세요",
-    body: "이드 본인이 직접 확인하고 답합니다.",
-  },
-  {
-    href: "/services",
-    title: "필요한 자문을 확인하세요",
-    body: "조직의 상황에 맞는 서비스와 플랜을 안내합니다.",
-  },
-  {
-    href: "/about",
-    title: "이드가 어떤 사람인지 궁금하다면",
-    body: "커리어와 일하는 방식을 소개합니다.",
-  },
+  { href: "/ask", label: "질문/문의", variant: "ask" },
+  { href: "/services", label: "서비스 소개", variant: "services" },
+  { href: "/about", label: "이드 소개", variant: "about" },
 ];
 
 export default function Home() {
@@ -38,7 +26,7 @@ export default function Home() {
           <div className="home__side">
             <div className="home__id">
               <div className="home__logo-box">
-                <Image className="home__mark" src="/iid-logo.png" alt="이드(iid) 캐릭터" width={640} height={543} priority />
+                <Image className="home__mark" src="/iid-character.png" alt="이드(iid) 캐릭터" width={600} height={600} priority />
               </div>
               <div className="home__brand-box">
                 <span>HR Problem Solver</span>
@@ -57,9 +45,8 @@ export default function Home() {
           <h2 className="home__next-h">어디서부터 시작할까요</h2>
           <div className="home__next-grid">
             {NEXT_STEPS.map((s) => (
-              <Link key={s.href} href={s.href} className="home__next-item">
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
+              <Link key={s.href} href={s.href} className={`home__next-item home__next-item--${s.variant}`}>
+                {s.label}
               </Link>
             ))}
           </div>

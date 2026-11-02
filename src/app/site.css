@@ -406,9 +406,9 @@ h1{letter-spacing:-.01em}
 
 .home__quotes{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .home__quotes li{background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:var(--shadow-pop);padding:16px 24px;border-radius:26px 26px 26px 6px;font:400 clamp(18px,min(2.1vw,3vh),24px)/1.4 var(--serif);max-width:100%}
-.home__foot{display:flex;flex-wrap:wrap;gap:4px 24px;align-items:center;padding-top:14px;padding-bottom:18px;border-top:1px solid var(--line);font-size:14px}
-.home__foot a{color:var(--muted);text-decoration:none;min-height:36px;display:inline-flex;align-items:center;transition:color var(--dur-hover) var(--ease-out)}
-@media (hover:hover) and (pointer:fine){.home__foot a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}}
+.home__foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:28px;padding-bottom:32px;border-top:2px solid var(--ink)}
+.home__foot a{color:var(--ink);text-decoration:none;min-height:42px;display:inline-flex;align-items:center;padding:0 18px;border:2px solid var(--ink);border-radius:999px;font:700 14.5px var(--sans);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+@media (hover:hover) and (pointer:fine){.home__foot a:hover{background:var(--ink);color:#fff}}
 
 
 .foot__h{font-size:clamp(22px,2.6vw,28px);margin-bottom:6px}
@@ -647,36 +647,43 @@ h1{letter-spacing:-.01em}
 main{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){main{scroll-behavior:auto}}
 
-/* 홈: 캐릭터 로고와 "HR Problem Solver" 글자를 각자 다른 박스로 분리하고, 그 아래 말풍선을 한 줄씩 쌓는다. */
+/* 홈: 캐릭터 로고(원형)와 "HR Problem Solver" 글자박스를 분리하고, 그 아래 말풍선을 한 줄씩 쌓는다. */
 .site-root{
   .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
   .home__side{width:fit-content;max-width:100%;display:flex;flex-direction:column;gap:18px}
 
   .home__id{display:flex;align-items:center;gap:14px}
-  /* 로고 박스: 원래 로고 이미지(검정 배경)를 그대로 쓰는 정사각 박스 */
-  .home__logo-box{flex:none;width:clamp(84px,9vw,118px);aspect-ratio:1/1;border:3px solid var(--logo-black);border-radius:20px;background:var(--logo-black);overflow:hidden;display:flex}
+  /* 로고: 원래 로고 이미지(검정 배경)를 원형으로 자른다 */
+  .home__logo-box{flex:none;width:clamp(84px,9vw,118px);aspect-ratio:1/1;border:3px solid var(--logo-black);border-radius:50%;background:var(--logo-black);overflow:hidden;display:flex}
   .home__mark{width:100%;height:100%;object-fit:cover}
-  /* 글자 박스: 로고와 분리된 별도의 말풍선형 박스 */
-  .home__brand-box{flex:none;border:3px solid var(--ink);border-radius:20px 20px 20px 6px;background:var(--orange);box-shadow:var(--shadow-pop);padding:14px clamp(16px,1.8vw,22px)}
-  .home__brand-box span{display:block;color:var(--ink);font:800 clamp(16px,1.9vw,21px)/1.3 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+  /* 글자 박스: 로고와 분리된 별도의 검은 박스 */
+  .home__brand-box{flex:none;border:3px solid var(--ink);border-radius:16px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:14px clamp(16px,1.8vw,22px)}
+  .home__brand-box span{display:block;color:#fff;font:800 clamp(16px,1.9vw,21px)/1.3 var(--sans);letter-spacing:-.01em;white-space:nowrap}
 
   .home__quotes{flex:none;gap:10px}
   /* 글자는 가장 긴 문장이 한 줄에 들어가는 만큼 키운다 (화면 폭에 비례) */
   .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;padding:10px 20px;font-size:clamp(14px,min(calc((min(100vw,1040px) - 184px) / 36),2.8vh),24px);line-height:1.4}
-  @media (max-width:760px){.home__side{display:none}}
+  @media (max-width:760px){
+    /* 모바일: 1열로 바꾸고, 로고+글자박스를 맨 위로 올려 그 아래 소개 글이 이어지게 한다 */
+    .home__grid{grid-template-columns:minmax(0,1fr)}
+    .home__side{order:-1;width:auto;margin-bottom:4px}
+    .home__quotes{display:none}
+  }
   @media (max-width:420px){.home__brand-box span{white-space:normal}}
 }
 
 .home__credit{margin:-18px 0 0;color:var(--muted);font:600 14.5px/1.6 var(--sans)}
 
-.home__next{padding-top:12px;padding-bottom:48px}
-.home__next-h{font:400 clamp(23px,2.6vw,30px)/1.3 var(--serif);color:var(--ink);margin-bottom:18px}
-.home__next-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.home__next-item{display:block;padding:24px 26px;background:var(--field);border:2px solid var(--ink);border-radius:22px;box-shadow:var(--shadow-pop);text-decoration:none;color:var(--ink);transition:transform var(--dur-press) var(--ease-out),box-shadow var(--dur-hover) var(--ease-out),border-color var(--dur-hover) var(--ease-out)}
-.home__next-item:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.home__next-item h3{margin:0 0 8px;font:400 clamp(17px,1.5vw,20px)/1.4 var(--serif)}
-.home__next-item p{margin:0;color:var(--muted);font-size:14.5px}
-@media (hover:hover) and (pointer:fine){.home__next-item:hover{border-color:var(--orange);box-shadow:3px 3px 0 var(--orange)}}
+.home__next{padding-top:72px;padding-bottom:48px}
+.home__next-h{font:400 clamp(21px,2.4vw,26px)/1.3 var(--serif);color:var(--ink);margin-bottom:14px}
+.home__next-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:560px}
+.home__next-item{display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:10px 14px;border-radius:14px;text-decoration:none;font:700 15px/1.3 var(--sans);letter-spacing:-.01em;transition:transform var(--dur-press) var(--ease-out),opacity var(--dur-hover) var(--ease-out)}
+.home__next-item:active{transform:scale(.96)}
+.home__next-item.home__next-item--ask{background:var(--orange);color:var(--ink)}
+.home__next-item.home__next-item--services{background:var(--logo-black);color:#fff}
+.home__next-item.home__next-item--about{background:var(--red);color:#fff}
+@media (hover:hover) and (pointer:fine){.home__next-item:hover{opacity:.85}}
+@media (max-width:480px){.home__next-grid{max-width:100%}.home__next-item{font-size:13.5px;padding:10px 8px}}
 @media (max-width:760px){.home__next-grid{grid-template-columns:minmax(0,1fr)}}
 
 /* ───── v3: 같은 톤(흰 바탕 + 검정 선 + 주황) · 섹션 제목 · 서비스/플랜 정리 · 이드 소개 ───── */
