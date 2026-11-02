@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ContentTabs from "@/components/site/ContentTabs";
-import { ArrowRight, ExternalLink, Search, X } from "lucide-react";
+import { ArrowRight, ChevronLeft, ExternalLink, Search, SlidersHorizontal, X } from "lucide-react";
 import { CATEGORY_LIST, SUBCATEGORY_LIST, Post, SearchIndex } from "@/lib/search";
 import { createClient } from "@/lib/supabase/client";
 import SourceIcon from "@/components/SourceIcon";
@@ -35,6 +35,8 @@ export default function SearchPage() {
   const [submitted, setSubmitted] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ post: Post; qTokens: string[] } | null>(null);
+  // 좁은 화면에서는 카테고리/하위카테고리/결과를 한 번에 하나씩만 보여줍니다 (lg 이상에서는 무시되고 항상 다 보임).
+  const [mobileView, setMobileView] = useState<"category" | "subcategory" | "results">("results");
 
   useEffect(() => {
     fetch("/data/corpus.json")
@@ -113,6 +115,8 @@ export default function SearchPage() {
     setSubcategory("");
     setSubmitted("");
     setQuery("");
+    const nextSubs = c !== "전체" ? SUBCATEGORY_LIST[c] || [] : [];
+    setMobileView(nextSubs.length > 0 ? "subcategory" : "results");
   }
 
   const subs = category !== "전체" ? SUBCATEGORY_LIST[category] || [] : [];
@@ -150,8 +154,20 @@ export default function SearchPage() {
         </form>
       </div>
 
-      <div className={`flex-1 min-h-0 grid ${showSubColumn ? "grid-cols-[190px_190px_1fr]" : "grid-cols-[190px_1fr]"}`}>
-        <aside className="border-r border-black/10 overflow-y-auto py-4">
+      <div
+        className={`flex-1 min-h-0 flex lg:grid ${
+          showSubColumn ? "lg:grid-cols-[190px_190px_minmax(0,1fr)]" : "lg:grid-cols-[190px_minmax(0,1fr)]"
+        }`}
+      >
+        <aside className={`${mobileView === "category" ? "block" : "hidden"} lg:block w-full lg:w-auto border-r border-black/10 overflow-y-auto py-4`}>
+          <button
+            type="button"
+            onClick={() => setMobileView("results")}
+            className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#FF4103]"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
+            결과로
+          </button>
           {CATEGORY_LIST.map((c) => {
             const count = c === "전체" ? posts?.length ?? 0 : categoryCounts.get(c) ?? 0;
             const active = category === c;
@@ -174,7 +190,17 @@ export default function SearchPage() {
         </aside>
 
         {showSubColumn && (
-          <aside className="border-r border-black/10 overflow-y-auto py-4">
+          <aside
+            className={`${mobileView === "subcategory" ? "block" : "hidden"} lg:block w-full lg:w-auto border-r border-black/10 overflow-y-auto py-4`}
+          >
+            <button
+              type="button"
+              onClick={() => setMobileView("category")}
+              className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#FF4103]"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
+              카테고리
+            </button>
             <div className="px-4 pb-2 text-[11px] font-semibold text-[#B0B0B0] uppercase tracking-wide">{category}</div>
             <button
               type="button"
@@ -182,6 +208,7 @@ export default function SearchPage() {
                 setSubcategory("");
                 setSubmitted("");
                 setQuery("");
+                setMobileView("results");
               }}
               className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-sm text-left border-l-2 ${
                 subcategory === ""
@@ -204,6 +231,7 @@ export default function SearchPage() {
                     setSubcategory(s);
                     setSubmitted("");
                     setQuery("");
+                    setMobileView("results");
                   }}
                   className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-sm text-left border-l-2 ${
                     sActive
@@ -219,8 +247,17 @@ export default function SearchPage() {
           </aside>
         )}
 
-        <div className="min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
+        <div className={`${mobileView === "results" ? "block" : "hidden"} lg:block w-full lg:w-auto min-h-0 overflow-y-auto px-4 sm:px-6 py-5`}>
           <div className="max-w-3xl">
+            <button
+              type="button"
+              onClick={() => setMobileView("category")}
+              className="lg:hidden mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] border border-black/15 rounded-full px-3 py-1.5 hover:border-[#FF4103] hover:text-[#FF4103]"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
+              {category}
+              {subcategory ? ` · ${subcategory}` : ""}
+            </button>
             {!posts ? (
               <p className="text-sm text-[#9A9A9A]">이드의 글을 불러오는 중…</p>
             ) : (
@@ -233,18 +270,20 @@ export default function SearchPage() {
                 ) : (
                   <ul className="flex flex-col divide-y divide-black/8 border-y border-black/8">
                     {results.map((r) => (
-                      <li key={r.post.id} className="flex items-center gap-5 py-2.5">
-                        <span className="shrink-0 w-[68px] flex items-center gap-1.5">
-                          <SourceIcon source={r.post.source} />
-                          <span className="text-[11px] text-[#9A9A9A]">{r.post.source}</span>
-                        </span>
-                        <span className="shrink-0 w-[72px] text-xs text-[#9A9A9A] tabular-nums whitespace-nowrap">
-                          {formatDate(r.post.date)}
-                        </span>
+                      <li key={r.post.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 py-2.5">
+                        <div className="flex items-center gap-3 sm:contents">
+                          <span className="shrink-0 w-[68px] flex items-center gap-1.5">
+                            <SourceIcon source={r.post.source} />
+                            <span className="text-[11px] text-[#9A9A9A]">{r.post.source}</span>
+                          </span>
+                          <span className="shrink-0 sm:w-[72px] text-xs text-[#9A9A9A] tabular-nums whitespace-nowrap">
+                            {formatDate(r.post.date)}
+                          </span>
+                        </div>
                         <span className="flex-1 min-w-0 font-sans font-semibold text-[14.5px] leading-snug text-[#111111] line-clamp-2">
                           {cleanTitle(r.post.title)}
                         </span>
-                        <div className="shrink-0 flex items-center justify-end gap-2">
+                        <div className="shrink-0 flex items-center justify-end gap-2 self-end sm:self-auto">
                           <button
                             type="button"
                             onClick={() => setSummary({ post: r.post, qTokens: r.qTokens })}

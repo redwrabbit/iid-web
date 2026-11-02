@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, EyeOff, Eye } from "lucide-react";
+import { Send, EyeOff, Eye, ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AttachmentView, ReactionTrigger, ThreadPanel, DragHandle, useResizableWidth, type Question, type MessageReply } from "./AskThread";
 
@@ -141,10 +141,14 @@ export default function AdminInboxChat({
   const active = threads.find((t) => t.userId === activeId);
   const activeProfile = activeId ? profileMap.get(activeId) : undefined;
 
+  // 좁은 화면에서는 목록/대화/스레드를 한 번에 하나씩만 보여줍니다 (lg 이상에서는 무시되고 항상 다 보임).
+  const [mobileView, setMobileView] = useState<"list" | "chat" | "thread">("list");
+
   function selectThread(userId: string) {
     setSelected(userId);
     markSeen(userId);
     setOpenThread(null);
+    setMobileView("chat");
   }
 
   const chatMsgs = useMemo<ChatMsg[]>(() => {
@@ -289,7 +293,10 @@ export default function AdminInboxChat({
 
   return (
     <div className="flex-1 min-h-0 flex">
-      <aside style={{ width: sidebarW }} className="shrink-0 border-r border-black/10 overflow-y-auto flex flex-col">
+      <aside
+        style={{ "--sidebar-w": `${sidebarW}px` } as React.CSSProperties}
+        className={`${mobileView === "list" ? "flex" : "hidden"} lg:flex w-full lg:w-[var(--sidebar-w)] lg:shrink-0 border-r border-black/10 overflow-y-auto flex-col`}
+      >
         {visibleThreads.map((t) => {
           const p = profileMap.get(t.userId);
           const activeThread = t.userId === activeId;
@@ -343,10 +350,18 @@ export default function AdminInboxChat({
 
       <DragHandle onDrag={dragSidebarW} />
 
-      <div className="flex-1 min-w-[300px] flex flex-col min-h-0">
+      <div className={`${mobileView === "chat" ? "flex" : "hidden"} lg:flex flex-1 min-w-[300px] flex-col min-h-0`}>
         {active && (
           <>
             <div className="border-b border-black/10 px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setMobileView("list")}
+                className="lg:hidden inline-flex items-center gap-1 text-xs text-[#6B6B6B] hover:text-[#FF4103] mb-1.5"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
+                목록
+              </button>
               <div className="text-sm font-bold text-[#111111]">{activeProfile?.name || "알 수 없음"}</div>
               <div className="text-xs text-[#9A9A9A]">
                 {[activeProfile?.email, activeProfile?.company, activeProfile?.role].filter(Boolean).join(" · ")}
@@ -398,6 +413,7 @@ export default function AdminInboxChat({
                           e.stopPropagation();
                           setOpenReactionFor(null);
                           setOpenThread({ questionId: m.questionId, field: m.field });
+                          setMobileView("thread");
                         }}
                         className="text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline"
                       >
@@ -458,7 +474,10 @@ export default function AdminInboxChat({
           busy={threadBusy}
           error={threadError}
           onSend={sendThreadReply}
-          onClose={() => setOpenThread(null)}
+          onClose={() => {
+            setOpenThread(null);
+            setMobileView("chat");
+          }}
         />
         </>
       )}

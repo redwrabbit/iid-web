@@ -21,7 +21,8 @@ function fmtThreadTime(t: string) {
 }
 
 // 칸 사이 경계선을 드래그로 당기면 폭이 바뀝니다. onDrag는 마우스가 움직인 만큼(px)을 넘겨줍니다.
-export function DragHandle({ onDrag }: { onDrag: (deltaPx: number) => void }) {
+// 모바일에서는 칸이 하나씩만 보이므로 기본적으로 숨기고, lg 이상에서만 보여줍니다.
+export function DragHandle({ onDrag, className = "hidden lg:block" }: { onDrag: (deltaPx: number) => void; className?: string }) {
   const draggingRef = useRef(false);
   const lastXRef = useRef(0);
 
@@ -54,7 +55,7 @@ export function DragHandle({ onDrag }: { onDrag: (deltaPx: number) => void }) {
       onMouseDown={onMouseDown}
       role="separator"
       aria-orientation="vertical"
-      className="w-1 shrink-0 cursor-col-resize bg-black/5 hover:bg-[#FF4103]/40 active:bg-[#FF4103]/60 transition-colors"
+      className={`w-1 shrink-0 cursor-col-resize bg-black/5 hover:bg-[#FF4103]/40 active:bg-[#FF4103]/60 transition-colors ${className}`}
     />
   );
 }
@@ -124,7 +125,10 @@ export function ThreadPanel({
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [replies.length]);
   return (
-    <div style={{ width }} className="shrink-0 border-l border-black/10 flex flex-col min-h-0 bg-white">
+    <div
+      style={{ "--thread-w": `${width}px` } as React.CSSProperties}
+      className="flex w-full lg:w-[var(--thread-w)] lg:shrink-0 border-l border-black/10 flex-col min-h-0 bg-white"
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
         <div className="text-sm font-bold text-[#111111]">스레드</div>
         <button type="button" onClick={onClose} aria-label="닫기" className="p-1 rounded-md text-[#B0B0B0] hover:text-[#111111] hover:bg-[#F4F4F2]">
@@ -491,7 +495,7 @@ export default function AskThread({
 
   return (
     <div className="flex-1 min-h-0 flex">
-    <div className="flex-1 min-w-[300px] flex flex-col min-h-0">
+    <div className={`${openThread ? "hidden" : "flex"} lg:flex flex-1 min-w-[300px] flex-col min-h-0`}>
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-5 pb-2 text-[12.5px] text-[#6B6B6B]">
         이드에게 직접 궁금한 걸 물어보세요. AI가 아니라 <strong className="text-[#444444]">이드 본인이 직접 확인하고 답변</strong>합니다 — 그래서
         답변까지 시간이 걸릴 수 있어요. 이 질문/답변은 본인만 볼 수 있습니다.
