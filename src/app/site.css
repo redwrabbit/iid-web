@@ -646,14 +646,15 @@ main{scroll-behavior:smooth}
 
 /* 홈: 캐릭터 로고(원형)와 "HR Problem Solver" 글자박스를 분리하고, 그 아래 말풍선을 한 줄씩 쌓는다. */
 .site-root{
-  .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:stretch}
+  /* 상단 메뉴바와의 간격을 늘리고, 화면이 넉넉할 땐 위아래 남는 공간에서 가운데로 */
+  .home__grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:stretch;padding-top:64px;margin-top:auto;margin-bottom:auto}
   /* 좌(소개 글)/우(로고+말풍선) 높이를 맞춘다: 오른쪽 내용을 위~아래 끝까지 펼쳐서 왼쪽과 같은 높이로 */
-  .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+  .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:30px}
 
-  /* 로고+글자를 다시 하나의 검은 박스로 합친다 */
-  .home__id{width:100%;display:flex;align-items:center;gap:16px;border:3px solid var(--logo-black);border-radius:24px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:12px clamp(16px,1.8vw,24px);overflow:hidden}
-  .home__mark{flex:none;height:clamp(60px,6.4vw,88px);width:clamp(60px,6.4vw,88px);border-radius:50%;object-fit:cover}
-  .home__brand{display:block;color:#fff;font:800 clamp(20px,2.8vw,30px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+  /* 로고+글자를 다시 하나의 검은 박스로 합친다 — 크게 */
+  .home__id{width:100%;display:flex;align-items:center;gap:18px;border:3px solid var(--logo-black);border-radius:28px;background:var(--logo-black);box-shadow:var(--shadow-pop);padding:18px clamp(18px,2vw,26px);overflow:hidden}
+  .home__mark{flex:none;height:clamp(76px,8vw,112px);width:clamp(76px,8vw,112px);border-radius:50%;object-fit:cover}
+  .home__brand{display:block;min-width:0;color:#fff;font:800 clamp(20px,2.4vw,29px)/1.2 var(--sans);letter-spacing:-.01em;white-space:nowrap}
 
   /* ul 자체는 박스를 만들지 않고, li들이 .home__side의 flex 아이템으로 바로 들어가게 한다 —
      그래야 justify-content:space-between이 글자박스~말풍선4개 사이 간격을 고르게 나눠준다 */
@@ -692,14 +693,13 @@ main{scroll-behavior:smooth}
 @media (hover:hover) and (pointer:fine){.home__contact-item:hover{background:var(--ink);color:#fff}}
 /* 연락하기 아이콘마다 브랜드 색 */
 .home__contact-item.home__contact-item--mail{background:var(--orange);border-color:var(--orange);color:var(--ink)}
-.home__contact-item.home__contact-item--instagram{background:#C13584;border-color:#C13584;color:#fff}
-.home__contact-item.home__contact-item--youtube{background:var(--red);border-color:var(--red);color:#fff}
+/* 인스타/유튜브는 원 배경 흰색 + 검은 테두리, 로고 자체만 브랜드 색 */
+.home__contact-item.home__contact-item--instagram{background:var(--paper);border-color:var(--logo-black);color:#C13584}
+.home__contact-item.home__contact-item--youtube{background:var(--paper);border-color:var(--logo-black);color:var(--red)}
 .home__contact-item.home__contact-item--linkedin{background:#0A66C2;border-color:#0A66C2;color:#fff}
 .home__contact-item.home__contact-item--brunch{border-color:var(--logo-black)}
 @media (hover:hover) and (pointer:fine){
   .home__contact-item.home__contact-item--mail:hover,
-  .home__contact-item.home__contact-item--instagram:hover,
-  .home__contact-item.home__contact-item--youtube:hover,
   .home__contact-item.home__contact-item--linkedin:hover{opacity:.8}
 }
 
