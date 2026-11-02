@@ -52,15 +52,16 @@ function MailIcon() {
 }
 
 const CONTACT_LINKS = [
-  { href: "mailto:iid.solutor@gmail.com", label: "이메일", icon: <MailIcon /> },
-  { href: "https://www.instagram.com/iid_hrer", label: "Instagram", icon: <InstagramIcon /> },
-  { href: "https://www.youtube.com/@iid_story", label: "YouTube", icon: <YoutubeIcon /> },
+  { href: "mailto:iid.solutor@gmail.com", label: "이메일", variant: "mail", icon: <MailIcon /> },
+  { href: "https://www.instagram.com/iid_hrer", label: "Instagram", variant: "instagram", icon: <InstagramIcon /> },
+  { href: "https://www.youtube.com/@iid_story", label: "YouTube", variant: "youtube", icon: <YoutubeIcon /> },
   {
     href: "https://brunch.co.kr/@iid-hr",
     label: "Brunch",
+    variant: "brunch",
     icon: <Image src="/brunch-logo.png" alt="" width={46} height={46} />,
   },
-  { href: "https://www.linkedin.com/in/shineastkim/", label: "LinkedIn", icon: <LinkedinIcon /> },
+  { href: "https://www.linkedin.com/in/shineastkim/", label: "LinkedIn", variant: "linkedin", icon: <LinkedinIcon /> },
 ];
 
 export default function Home() {
@@ -69,18 +70,14 @@ export default function Home() {
       <div className="home">
         <div className="wrap home__grid">
           <div className="home__main">
-            <h1>조직과 사람에 대한<br />의사결정을 <em>도와줍니다</em></h1>
+            <h1>조직과 사람에<br />대한 의사결정을<br /><em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
             <p className="home__credit">현 티오더 HR Director · 전 토스 · 야놀자 · 클래스101 · 휴이노</p>
           </div>
           <div className="home__side">
             <div className="home__id">
-              <div className="home__logo-box">
-                <Image className="home__mark" src="/iid-character.png" alt="이드(iid) 캐릭터" width={600} height={600} priority />
-              </div>
-              <div className="home__brand-box">
-                <span>HR Problem Solver</span>
-              </div>
+              <Image className="home__mark" src="/iid-character.png" alt="이드(iid) 캐릭터" width={600} height={600} priority />
+              <span className="home__brand">HR Problem Solver</span>
             </div>
             <ul className="home__quotes">
             <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
@@ -112,7 +109,7 @@ export default function Home() {
                   target={c.href.startsWith("http") ? "_blank" : undefined}
                   rel={c.href.startsWith("http") ? "noopener" : undefined}
                   aria-label={c.label}
-                  className="home__contact-item"
+                  className={`home__contact-item home__contact-item--${c.variant}`}
                 >
                   {c.icon}
                 </a>
