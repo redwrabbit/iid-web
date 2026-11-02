@@ -663,10 +663,13 @@ main{scroll-behavior:smooth}
   /* 말풍선은 각자 글자 길이만큼만(옛 디자인처럼 들쭉날쭉하게) */
   .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap;font-size:clamp(16px,2.1vw,24px)}
   @media (max-width:760px){
-    /* 모바일: 1열로 바꾸고, 로고+글자박스를 맨 위로 올려 그 아래 소개 글이 이어지게 한다 */
+    /* 모바일 순서: 검은 로고박스 → 제목/본문/이력 → 말풍선 4개 (→ 맨 아래 하단 바는 DOM 순서상 자연히 이어짐).
+       .home__side는 이제 박스를 만들지 않고(contents), 로고박스와 말풍선을 .home__main과 같은 레벨에서 order로 순서만 조정한다 */
     .home__grid{grid-template-columns:minmax(0,1fr);align-items:start}
-    .home__side{order:-1;width:auto;margin-bottom:4px}
-    .home__quotes{display:none}
+    .home__side{display:contents}
+    .home__id{order:-1;width:fit-content;margin-bottom:28px}
+    .home__quotes{display:flex;flex-direction:column;gap:12px;order:1;margin-top:28px}
+    .home__quotes li{white-space:normal}
   }
 }
 
@@ -681,7 +684,7 @@ main{scroll-behavior:smooth}
 .site-root .home__bottom{width:100%;padding-top:128px;padding-bottom:128px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:40px}
 .home__bottom-col{width:fit-content;max-width:100%;display:flex;align-items:center}
 .home__bottom-h{font:400 clamp(19px,2vw,23px)/1.3 var(--serif);color:var(--ink);margin-bottom:16px}
-@media (max-width:760px){.site-root .home__bottom{gap:36px;padding-top:56px}}
+@media (max-width:760px){.site-root .home__bottom{gap:36px}}
 
 /* 3개 버튼: 모두 같은 회색, 폭은 글자만큼만(좁게), 한 줄로 */
 .home__next-grid{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto}
