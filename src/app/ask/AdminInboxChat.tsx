@@ -191,7 +191,7 @@ export default function AdminInboxChat({
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [activeId]);
+  }, [activeId, chatMsgs.length]);
 
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
 
