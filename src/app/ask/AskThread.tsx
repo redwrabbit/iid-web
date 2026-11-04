@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
-import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
+import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, Paperclip, Pencil, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -119,7 +119,10 @@ export function serializeEditable(root: HTMLDivElement): string {
     runs = [];
   }
 
-  function walk(node: Node, markers: readonly string[]) {
+  // insideLi: 목록 항목(li) 안을 걷는 중인지. 우리 저장 형식은 글머리 기호 한 줄에 내용 한 줄만 담을 수
+  // 있어서, li 안에서 줄바꿈(Shift+Enter로 생긴 <br>)을 그대로 줄바꿈 처리하면 그 줄이 목록 밖으로
+  // 튀어나가 버린다 — 그래서 li 안에서는 <br>을 공백으로 뭉갠다.
+  function walk(node: Node, markers: readonly string[], insideLi = false) {
     if (node.nodeType === Node.TEXT_NODE) {
       pushRun(node.textContent || "", markers);
       return;
@@ -133,39 +136,44 @@ export function serializeEditable(root: HTMLDivElement): string {
       el.querySelectorAll(":scope > li").forEach((li) => {
         const prefix = tag === "ul" ? "- " : `${n++}. `;
         runs = [];
-        li.childNodes.forEach((c) => walk(c, markers));
+        li.childNodes.forEach((c) => walk(c, markers, true));
         lines.push(prefix + renderRuns().trimEnd());
         runs = [];
       });
       return;
     }
     if (tag === "div" || tag === "p") {
+      if (insideLi) {
+        el.childNodes.forEach((c) => walk(c, markers, true));
+        return;
+      }
       if (runs.length) flushLine();
       el.childNodes.forEach((c) => walk(c, markers));
       flushLine();
       return;
     }
     if (tag === "br") {
-      flushLine();
+      if (insideLi) pushRun(" ", []);
+      else flushLine();
       return;
     }
     if (tag === "b" || tag === "strong") {
       const next = markers.includes("**") ? markers : [...markers, "**"];
-      el.childNodes.forEach((c) => walk(c, next));
+      el.childNodes.forEach((c) => walk(c, next, insideLi));
       return;
     }
     if (tag === "u") {
       const next = markers.includes("__") ? markers : [...markers, "__"];
-      el.childNodes.forEach((c) => walk(c, next));
+      el.childNodes.forEach((c) => walk(c, next, insideLi));
       return;
     }
     if (tag === "a") {
       const href = el.getAttribute("href") || "";
       if (href) pushRun(`[${el.textContent || ""}](${href})`, []);
-      else el.childNodes.forEach((c) => walk(c, markers));
+      else el.childNodes.forEach((c) => walk(c, markers, insideLi));
       return;
     }
-    el.childNodes.forEach((c) => walk(c, markers));
+    el.childNodes.forEach((c) => walk(c, markers, insideLi));
   }
   root.childNodes.forEach((c) => walk(c, []));
   if (runs.length) flushLine();
@@ -177,11 +185,13 @@ export function serializeEditable(root: HTMLDivElement): string {
 const EDITABLE_MAX_H = 240;
 
 // 입력창 자체: contentEditable이라 굵게/밑줄/목록 들여쓰기가 타이핑하는 동안 바로 보인다.
+// initialHtml을 주면(기존 메시지 수정 등) 마운트 시 그 내용으로 미리 채워 넣는다.
 export function RichEditable({
   editableRef,
   placeholder,
   minHeight,
   padClassName = "px-4 py-3",
+  initialHtml,
   onEmptyChange,
   onEnterSubmit,
 }: {
@@ -189,10 +199,20 @@ export function RichEditable({
   placeholder: string;
   minHeight: number;
   padClassName?: string;
+  initialHtml?: string;
   onEmptyChange?: (empty: boolean) => void;
   onEnterSubmit: () => void;
 }) {
-  const [empty, setEmpty] = useState(true);
+  const [empty, setEmpty] = useState(!initialHtml);
+  useEffect(() => {
+    if (initialHtml && editableRef.current) {
+      editableRef.current.innerHTML = initialHtml;
+      const isEmpty = isEditableEmpty(editableRef.current);
+      setEmpty(isEmpty);
+      onEmptyChange?.(isEmpty);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="relative flex-1 border border-black/15 rounded-xl bg-[#FAFAF9] focus-within:ring-2 focus-within:ring-[#FF4103]">
       {empty && <div className={`pointer-events-none absolute inset-0 text-sm text-[#9A9A9A] ${padClassName}`}>{placeholder}</div>}
@@ -309,6 +329,109 @@ export function renderRichText(text: string): ReactNode {
   return blocks;
 }
 
+function inlineToHtml(text: string): string {
+  let out = "";
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  const re = makeInlineRe();
+  while ((m = re.exec(text))) {
+    if (m.index > lastIndex) out += escapeHtml(text.slice(lastIndex, m.index));
+    if (m[1] !== undefined) out += `<b>${inlineToHtml(m[1])}</b>`;
+    else if (m[2] !== undefined) out += `<u>${inlineToHtml(m[2])}</u>`;
+    else if (m[3] !== undefined) out += `<a href="${escapeHtmlAttr(m[4])}">${escapeHtml(m[3])}</a>`;
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) out += escapeHtml(text.slice(lastIndex));
+  return out;
+}
+
+// 저장된 평문을 다시 고칠 수 있게 contentEditable에 넣을 HTML로 바꾼다 — renderRichText와 같은 규칙으로 읽는다.
+// "1. 소제목" 처럼 혼자 나온 번호줄은 화면에선 굵게 보이지만, 그 굵기는 마커가 아니라 규칙에서 나오는
+// 것이라 여기서도 그대로 <b>로 감싸지 않는다 — 감싸면 저장할 때 "**1. ...**"로 실제 마커가 붙어버린다.
+function richTextToHtml(text: string): string {
+  const lines = text.split("\n");
+  const blocks: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (isBulletLine(lines[i])) {
+      const items: string[] = [];
+      while (i < lines.length && isBulletLine(lines[i])) {
+        items.push(lines[i].slice(2));
+        i++;
+      }
+      blocks.push(`<ul>${items.map((it) => `<li>${inlineToHtml(it)}</li>`).join("")}</ul>`);
+    } else if (NUMBERED_PREFIX_RE.test(lines[i])) {
+      const items: string[] = [];
+      let j = i;
+      while (j < lines.length && NUMBERED_PREFIX_RE.test(lines[j])) {
+        items.push(lines[j].replace(NUMBERED_PREFIX_RE, ""));
+        j++;
+      }
+      if (items.length >= 2) {
+        blocks.push(`<ol>${items.map((it) => `<li>${inlineToHtml(it)}</li>`).join("")}</ol>`);
+        i = j;
+      } else {
+        blocks.push(`<div>${inlineToHtml(lines[i])}</div>`);
+        i++;
+      }
+    } else {
+      blocks.push(`<div>${inlineToHtml(lines[i]) || "<br>"}</div>`);
+      i++;
+    }
+  }
+  return blocks.join("");
+}
+
+// 말풍선 하나를 "고치기" 모드로 바꿔서 보여주는 공용 상자 — 질문/답변/스레드 답글에서 똑같이 쓴다.
+export function InlineEditBox({
+  initialText,
+  busy,
+  onSave,
+  onCancel,
+}: {
+  initialText: string;
+  busy?: boolean;
+  onSave: (text: string) => void;
+  onCancel: () => void;
+}) {
+  const editableRef = useRef<HTMLDivElement>(null);
+  const [isEmpty, setIsEmpty] = useState(!initialText.trim());
+  function save() {
+    const el = editableRef.current;
+    if (!el || busy) return;
+    const v = serializeEditable(el).trim();
+    if (!v) return;
+    onSave(v);
+  }
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <FormatToolbar editableRef={editableRef} />
+      <RichEditable
+        editableRef={editableRef}
+        placeholder=""
+        minHeight={40}
+        padClassName="px-3 py-2"
+        initialHtml={richTextToHtml(initialText)}
+        onEmptyChange={setIsEmpty}
+        onEnterSubmit={save}
+      />
+      <div className="flex items-center justify-end gap-2">
+        <button type="button" onClick={onCancel} className="text-xs text-[#9A9A9A] hover:text-[#111111] px-2 py-1">
+          취소
+        </button>
+        <button
+          type="button"
+          disabled={busy || isEmpty}
+          onClick={save}
+          className="text-xs font-semibold text-white bg-[#FF4103] rounded-lg px-3 py-1.5 disabled:opacity-60"
+        >
+          저장
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // 칸 사이 경계선을 드래그로 당기면 폭이 바뀝니다. onDrag는 마우스가 움직인 만큼(px)을 넘겨줍니다.
 // 모바일에서는 칸이 하나씩만 보이므로 기본적으로 숨기고, lg 이상에서만 보여줍니다.
 export function DragHandle({ onDrag, className = "hidden lg:block" }: { onDrag: (deltaPx: number) => void; className?: string }) {
@@ -390,6 +513,7 @@ export function ThreadPanel({
   busy,
   error,
   onSend,
+  onEditReply,
   onClose,
   width = 380,
 }: {
@@ -399,11 +523,13 @@ export function ThreadPanel({
   busy: boolean;
   error: string;
   onSend: (text: string) => void;
+  onEditReply?: (replyId: string, text: string) => void;
   onClose: () => void;
   width?: number;
 }) {
   const editableRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   function submit() {
     const el = editableRef.current;
     if (!el || busy) return;
@@ -445,18 +571,47 @@ export function ThreadPanel({
           )}
         </div>
         {replies.length === 0 && <p className="text-xs text-[#9A9A9A] text-center py-4">아직 답글이 없어요.</p>}
-        {replies.map((r) => (
-          <div key={r.id} className={`flex flex-col gap-1 ${r.sender === viewerRole ? "items-end" : "items-start"}`}>
-            <div
-              className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
-                r.sender === viewerRole ? "bg-[#FF4103] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
-              }`}
-            >
-              {renderRichText(r.text)}
+        {replies.map((r) => {
+          const own = r.sender === viewerRole;
+          if (editingReplyId === r.id) {
+            return (
+              <div key={r.id} className="flex flex-col gap-1 items-end">
+                <InlineEditBox
+                  initialText={r.text}
+                  onSave={(text) => {
+                    onEditReply?.(r.id, text);
+                    setEditingReplyId(null);
+                  }}
+                  onCancel={() => setEditingReplyId(null)}
+                />
+              </div>
+            );
+          }
+          return (
+            <div key={r.id} className={`flex flex-col gap-1 ${own ? "items-end" : "items-start"}`}>
+              <div
+                className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
+                  own ? "bg-[#FF4103] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
+                }`}
+              >
+                {renderRichText(r.text)}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-[10px] text-[#B0B0B0]">{fmtThreadTime(r.created_at)}</div>
+                {own && onEditReply && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingReplyId(r.id)}
+                    aria-label="수정"
+                    className="text-[#B0B0B0] hover:text-[#FF4103]"
+                  >
+                    <Pencil className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="text-[10px] text-[#B0B0B0]">{fmtThreadTime(r.created_at)}</div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
       <div className="border-t border-black/10 px-4 py-3">
@@ -624,6 +779,7 @@ export default function AskThread({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
     setOpenReactionFor(null);
@@ -661,6 +817,19 @@ export default function AskThread({
       return;
     }
     setReplies((prev) => [...prev, data as MessageReply]);
+  }
+
+  async function editThreadReply(replyId: string, text: string) {
+    const supabase = createClient();
+    const { error: err } = await supabase.from("message_replies").update({ text }).eq("id", replyId);
+    if (!err) setReplies((prev) => prev.map((r) => (r.id === replyId ? { ...r, text } : r)));
+  }
+
+  async function editQuestion(questionId: string, text: string) {
+    const supabase = createClient();
+    const { error: err } = await supabase.from("questions").update({ question: text }).eq("id", questionId);
+    if (!err) setItems((prev) => prev.map((it) => (it.id === questionId ? { ...it, question: text } : it)));
+    setEditingQuestionId(null);
   }
 
   const chatMsgs = useMemo<ChatMsg[]>(() => {
@@ -810,6 +979,19 @@ export default function AskThread({
           )}
           {chatMsgs.map((m) => {
             if (m.kind === "question") {
+              if (editingQuestionId === m.questionId) {
+                return (
+                  <div key={m.key} className="flex flex-col gap-1 items-end">
+                    <div className="max-w-[85%] w-full">
+                      <InlineEditBox
+                        initialText={m.text}
+                        onSave={(text) => editQuestion(m.questionId, text)}
+                        onCancel={() => setEditingQuestionId(null)}
+                      />
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div key={m.key} className="flex flex-col gap-1 items-end">
                   <div className="max-w-[85%] flex flex-col gap-2 items-end">
@@ -828,13 +1010,23 @@ export default function AskThread({
                       </div>
                     )}
                   </div>
-                  <ReactionTrigger
-                    reaction={m.reaction}
-                    align="end"
-                    open={openReactionFor === m.key}
-                    onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
-                    onPick={(emoji) => setReaction(m.questionId, "question", emoji)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <ReactionTrigger
+                      reaction={m.reaction}
+                      align="end"
+                      open={openReactionFor === m.key}
+                      onToggle={() => setOpenReactionFor((k) => (k === m.key ? null : m.key))}
+                      onPick={(emoji) => setReaction(m.questionId, "question", emoji)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditingQuestionId(m.questionId)}
+                      aria-label="수정"
+                      className="text-[#C4C4C4] hover:text-[#FF4103]"
+                    >
+                      <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                    </button>
+                  </div>
                   {replyTrigger(m.questionId, "question", "end")}
                 </div>
               );
@@ -933,6 +1125,7 @@ export default function AskThread({
         busy={threadBusy}
         error={threadError}
         onSend={sendThreadReply}
+        onEditReply={editThreadReply}
         onClose={() => setOpenThread(null)}
       />
       </>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, EyeOff, Eye, ChevronLeft } from "lucide-react";
+import { Send, EyeOff, Eye, ChevronLeft, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   AttachmentView,
@@ -11,6 +11,7 @@ import {
   useResizableWidth,
   FormatToolbar,
   RichEditable,
+  InlineEditBox,
   serializeEditable,
   renderRichText,
   type Question,
@@ -206,6 +207,7 @@ export default function AdminInboxChat({
   }, [activeId, chatMsgs.length]);
 
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
+  const [editingAnswerKey, setEditingAnswerKey] = useState<string | null>(null);
 
   async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
     setOpenReactionFor(null);
@@ -214,6 +216,24 @@ export default function AdminInboxChat({
     );
     const supabase = createClient();
     await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
+  }
+
+  // 답변 하나는 같은 answered_at+내용을 공유하는 여러 질문 행에 걸쳐 있을 수 있어서(한 번에 묶어 보낸 경우),
+  // 그 그룹 전체를 같이 고친다.
+  async function editAnswer(m: ChatMsg, text: string) {
+    const supabase = createClient();
+    const { error: err } = await supabase
+      .from("questions")
+      .update({ answer: text })
+      .eq("user_id", activeId)
+      .eq("answered_at", m.time)
+      .eq("answer", m.text);
+    if (!err) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.user_id === activeId && q.answered_at === m.time && q.answer === m.text ? { ...q, answer: text } : q))
+      );
+    }
+    setEditingAnswerKey(null);
   }
 
   const [busy, setBusy] = useState(false);
@@ -290,6 +310,12 @@ export default function AdminInboxChat({
       return;
     }
     setReplies((prev) => [...prev, data as MessageReply]);
+  }
+
+  async function editThreadReply(replyId: string, text: string) {
+    const supabase = createClient();
+    const { error: err } = await supabase.from("message_replies").update({ text }).eq("id", replyId);
+    if (!err) setReplies((prev) => prev.map((r) => (r.id === replyId ? { ...r, text } : r)));
   }
 
   const openThreadParent = useMemo(() => {
@@ -389,6 +415,21 @@ export default function AdminInboxChat({
                 const showTime = !prev || new Date(m.time).getTime() - new Date(prev.time).getTime() > GROUP_GAP_MS;
                 const align = m.sender === "admin" ? "end" : "start";
                 const replyCount = repliesFor(m.questionId, m.field).length;
+                const isAdminMsg = m.sender === "admin";
+                if (isAdminMsg && editingAnswerKey === m.key) {
+                  return (
+                    <div key={m.key} className="flex flex-col gap-1">
+                      {showTime && <div className="text-center text-[10.5px] text-[#B0B0B0] py-1">{fmt(m.time)}</div>}
+                      <div className="max-w-[85%] w-full self-end">
+                        <InlineEditBox
+                          initialText={m.text}
+                          onSave={(text) => editAnswer(m, text)}
+                          onCancel={() => setEditingAnswerKey(null)}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={m.key} className="flex flex-col gap-1">
                     {showTime && <div className="text-center text-[10.5px] text-[#B0B0B0] py-1">{fmt(m.time)}</div>}
@@ -434,6 +475,19 @@ export default function AdminInboxChat({
                       >
                         {replyCount > 0 ? `${replyCount}개의 댓글` : "답글달기"}
                       </button>
+                      {isAdminMsg && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingAnswerKey(m.key);
+                          }}
+                          aria-label="수정"
+                          className="text-[#C4C4C4] hover:text-[#FF4103]"
+                        >
+                          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -485,6 +539,7 @@ export default function AdminInboxChat({
           busy={threadBusy}
           error={threadError}
           onSend={sendThreadReply}
+          onEditReply={editThreadReply}
           onClose={() => {
             setOpenThread(null);
             setMobileView("chat");
