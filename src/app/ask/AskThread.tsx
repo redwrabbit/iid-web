@@ -20,195 +20,227 @@ function fmtThreadTime(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// 입력창이 글 길이에 맞춰 자동으로 늘어나게 (최대 높이까지, 그 이상은 스크롤).
-const TEXTAREA_MAX_H = 240;
-export function useAutoGrowTextarea(ref: RefObject<HTMLTextAreaElement | null>, value: string) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, TEXTAREA_MAX_H) + "px";
-  }, [ref, value]);
-}
-
-// **굵게** / __밑줄__ 선택 영역을 감싸거나 풀고, 커서/선택 위치를 유지한다.
-function wrapSelection(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void, marker: string) {
-  const start = el.selectionStart ?? value.length;
-  const end = el.selectionEnd ?? value.length;
-  const before = value.slice(0, start);
-  const selected = value.slice(start, end);
-  const after = value.slice(end);
-  const alreadyWrapped = selected.length >= marker.length * 2 && selected.startsWith(marker) && selected.endsWith(marker);
-  let next: string, newStart: number, newEnd: number;
-  if (selected && alreadyWrapped) {
-    const inner = selected.slice(marker.length, selected.length - marker.length);
-    next = before + inner + after;
-    newStart = start;
-    newEnd = start + inner.length;
-  } else if (selected) {
-    next = before + marker + selected + marker + after;
-    newStart = start + marker.length;
-    newEnd = newStart + selected.length;
-  } else {
-    next = before + marker + marker + after;
-    newStart = start + marker.length;
-    newEnd = newStart;
-  }
-  setValue(next);
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(newStart, newEnd);
-  });
-}
-
 function isBulletLine(line: string) {
   return line.startsWith("- ") || line.startsWith("* ");
 }
 
 const NUMBERED_PREFIX_RE = /^\d+\.\s+/;
 
-// 선택된 줄들 앞에 "- "를 붙이거나(이미 다 붙어있으면, "* "로 붙은 것도 포함해서) 뗀다.
-function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
-  const start = el.selectionStart ?? value.length;
-  const end = el.selectionEnd ?? value.length;
-  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-  const lineEndIdx = value.indexOf("\n", end);
-  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
-  const block = value.slice(lineStart, lineEnd);
-  const lines = block.split("\n");
-  const allBulleted = lines.every((l) => isBulletLine(l) || l.trim() === "");
-  const newLines = lines.map((l) => {
-    if (l.trim() === "") return l;
-    if (allBulleted) return l.replace(/^[-*] /, "");
-    return isBulletLine(l) ? l : "- " + l;
-  });
-  const newBlock = newLines.join("\n");
-  const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
-  setValue(next);
-  const delta = newBlock.length - block.length;
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(lineStart, Math.max(lineStart, lineEnd + delta));
-  });
+function isEditableEmpty(el: HTMLDivElement | null) {
+  if (!el) return true;
+  return (el.textContent || "").trim().length === 0;
 }
 
-// 선택된 줄들에 "1. 2. 3." 번호를 매기거나(이미 다 매겨져 있으면) 뗀다.
-function toggleNumberedLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
-  const start = el.selectionStart ?? value.length;
-  const end = el.selectionEnd ?? value.length;
-  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-  const lineEndIdx = value.indexOf("\n", end);
-  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
-  const block = value.slice(lineStart, lineEnd);
-  const lines = block.split("\n");
-  const allNumbered = lines.every((l) => NUMBERED_PREFIX_RE.test(l) || l.trim() === "");
-  let n = 1;
-  const newLines = lines.map((l) => {
-    if (l.trim() === "") return l;
-    const bare = l.replace(NUMBERED_PREFIX_RE, "");
-    return allNumbered ? bare : `${n++}. ${bare}`;
-  });
-  const newBlock = newLines.join("\n");
-  const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
-  setValue(next);
-  const delta = newBlock.length - block.length;
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(lineStart, Math.max(lineStart, lineEnd + delta));
-  });
+function escapeHtml(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeHtmlAttr(s: string) {
+  return escapeHtml(s).replace(/"/g, "&quot;");
 }
 
-// 선택한 글을 [글](url) 링크로 감싼다. 선택이 없으면 채워 넣을 틀을 끼워 넣는다.
-function insertLink(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
-  const start = el.selectionStart ?? value.length;
-  const end = el.selectionEnd ?? value.length;
-  const before = value.slice(0, start);
-  const selected = value.slice(start, end);
-  const after = value.slice(end);
-  const label = selected || "링크 텍스트";
-  const urlPlaceholder = "https://";
-  const next = `${before}[${label}](${urlPlaceholder})${after}`;
-  setValue(next);
-  const urlStart = before.length + label.length + 3; // "[" + label + "]("
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(urlStart, urlStart + urlPlaceholder.length);
-  });
+function toggleBold(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("bold");
+}
+function toggleUnderline(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("underline");
+}
+function toggleBulletList(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("insertUnorderedList");
+}
+function toggleNumberedList(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("insertOrderedList");
+}
+// 선택한 글을 링크로 감싼다. 선택이 없으면 주소 자체를 글자로 끼워 넣는다.
+function insertLinkCmd(el: HTMLDivElement) {
+  el.focus();
+  const hasSelection = !!window.getSelection()?.toString();
+  const url = window.prompt("링크 주소를 입력하세요", "https://");
+  if (!url) return;
+  if (hasSelection) {
+    document.execCommand("createLink", false, url);
+  } else {
+    document.execCommand("insertHTML", false, `<a href="${escapeHtmlAttr(url)}">${escapeHtml(url)}</a>&nbsp;`);
+  }
 }
 
-// 굵게/밑줄/목록 서식 버튼 한 줄. textarea 위에 올려서 쓴다.
-export function FormatToolbar({ textareaRef, value, setValue }: { textareaRef: RefObject<HTMLTextAreaElement | null>; value: string; setValue: (v: string) => void }) {
+// 굵게/밑줄/목록/링크 서식 버튼 한 줄. 입력창 위에 올려서 쓴다.
+// onMouseDown에서 버튼 자체의 포커스를 막아야, 클릭해도 입력창의 선택 영역이 풀리지 않는다.
+export function FormatToolbar({ editableRef }: { editableRef: RefObject<HTMLDivElement | null> }) {
   const btnCls = "w-7 h-7 rounded-md flex items-center justify-center text-[#6B6B6B] hover:text-[#FF4103] hover:bg-[#F4F4F2]";
+  const keepFocus = (e: React.MouseEvent) => e.preventDefault();
   return (
     <div className="flex items-center gap-0.5 mb-1">
-      <button
-        type="button"
-        aria-label="굵게"
-        title="굵게"
-        className={btnCls}
-        onClick={() => textareaRef.current && wrapSelection(textareaRef.current, value, setValue, "**")}
-      >
+      <button type="button" aria-label="굵게" title="굵게" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && toggleBold(editableRef.current)}>
         <Bold className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
-      <button
-        type="button"
-        aria-label="밑줄"
-        title="밑줄"
-        className={btnCls}
-        onClick={() => textareaRef.current && wrapSelection(textareaRef.current, value, setValue, "__")}
-      >
+      <button type="button" aria-label="밑줄" title="밑줄" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && toggleUnderline(editableRef.current)}>
         <UnderlineIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
-      <button
-        type="button"
-        aria-label="글머리 기호"
-        title="글머리 기호"
-        className={btnCls}
-        onClick={() => textareaRef.current && toggleBulletLines(textareaRef.current, value, setValue)}
-      >
+      <button type="button" aria-label="글머리 기호" title="글머리 기호" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && toggleBulletList(editableRef.current)}>
         <List className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
-      <button
-        type="button"
-        aria-label="번호 매기기"
-        title="번호 매기기"
-        className={btnCls}
-        onClick={() => textareaRef.current && toggleNumberedLines(textareaRef.current, value, setValue)}
-      >
+      <button type="button" aria-label="번호 매기기" title="번호 매기기" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && toggleNumberedList(editableRef.current)}>
         <ListOrdered className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
-      <button
-        type="button"
-        aria-label="링크"
-        title="링크"
-        className={btnCls}
-        onClick={() => textareaRef.current && insertLink(textareaRef.current, value, setValue)}
-      >
+      <button type="button" aria-label="링크" title="링크" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && insertLinkCmd(editableRef.current)}>
         <Link2 className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
     </div>
   );
 }
 
-const INLINE_RE = /\*\*(.+?)\*\*|__(.+?)__|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+// contentEditable 안의 실제 목록/굵게/밑줄/링크 DOM을 저장용 평문(마크다운 비슷한 표기)으로 바꾼다.
+// renderRichText가 그 평문을 다시 읽어 똑같은 서식으로 그려준다.
+// 같은 서식(markers)이 적용된 인접한 글자 조각들을 하나로 합친 뒤에 마커를 씌운다 — 안 그러면
+// 브라우저가 서식을 여러 조각(span/text node)으로 쪼개놨을 때 마커가 중복돼서 찍힌다.
+export function serializeEditable(root: HTMLDivElement): string {
+  type Run = { markers: readonly string[]; text: string };
+  const lines: string[] = [];
+  let runs: Run[] = [];
+
+  function sameMarkers(a: readonly string[], b: readonly string[]) {
+    return a.length === b.length && a.every((m, i) => m === b[i]);
+  }
+  function pushRun(text: string, markers: readonly string[]) {
+    if (!text) return;
+    const last = runs[runs.length - 1];
+    if (last && sameMarkers(last.markers, markers)) last.text += text;
+    else runs.push({ markers, text });
+  }
+  function renderRuns() {
+    return runs.map((r) => r.markers.reduce((s, m) => `${m}${s}${m}`, r.text)).join("");
+  }
+  function flushLine() {
+    lines.push(renderRuns());
+    runs = [];
+  }
+
+  function walk(node: Node, markers: readonly string[]) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      pushRun(node.textContent || "", markers);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "ul" || tag === "ol") {
+      if (runs.length) flushLine();
+      let n = 1;
+      el.querySelectorAll(":scope > li").forEach((li) => {
+        const prefix = tag === "ul" ? "- " : `${n++}. `;
+        runs = [];
+        li.childNodes.forEach((c) => walk(c, markers));
+        lines.push(prefix + renderRuns().trimEnd());
+        runs = [];
+      });
+      return;
+    }
+    if (tag === "div" || tag === "p") {
+      if (runs.length) flushLine();
+      el.childNodes.forEach((c) => walk(c, markers));
+      flushLine();
+      return;
+    }
+    if (tag === "br") {
+      flushLine();
+      return;
+    }
+    if (tag === "b" || tag === "strong") {
+      const next = markers.includes("**") ? markers : [...markers, "**"];
+      el.childNodes.forEach((c) => walk(c, next));
+      return;
+    }
+    if (tag === "u") {
+      const next = markers.includes("__") ? markers : [...markers, "__"];
+      el.childNodes.forEach((c) => walk(c, next));
+      return;
+    }
+    if (tag === "a") {
+      const href = el.getAttribute("href") || "";
+      if (href) pushRun(`[${el.textContent || ""}](${href})`, []);
+      else el.childNodes.forEach((c) => walk(c, markers));
+      return;
+    }
+    el.childNodes.forEach((c) => walk(c, markers));
+  }
+  root.childNodes.forEach((c) => walk(c, []));
+  if (runs.length) flushLine();
+  while (lines.length && lines[0] === "") lines.shift();
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  return lines.join("\n");
+}
+
+const EDITABLE_MAX_H = 240;
+
+// 입력창 자체: contentEditable이라 굵게/밑줄/목록 들여쓰기가 타이핑하는 동안 바로 보인다.
+export function RichEditable({
+  editableRef,
+  placeholder,
+  minHeight,
+  padClassName = "px-4 py-3",
+  onEmptyChange,
+  onEnterSubmit,
+}: {
+  editableRef: RefObject<HTMLDivElement | null>;
+  placeholder: string;
+  minHeight: number;
+  padClassName?: string;
+  onEmptyChange?: (empty: boolean) => void;
+  onEnterSubmit: () => void;
+}) {
+  const [empty, setEmpty] = useState(true);
+  return (
+    <div className="relative flex-1 border border-black/15 rounded-xl bg-[#FAFAF9] focus-within:ring-2 focus-within:ring-[#FF4103]">
+      {empty && <div className={`pointer-events-none absolute inset-0 text-sm text-[#9A9A9A] ${padClassName}`}>{placeholder}</div>}
+      <div
+        ref={editableRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => {
+          const isEmpty = isEditableEmpty(editableRef.current);
+          setEmpty(isEmpty);
+          onEmptyChange?.(isEmpty);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            onEnterSubmit();
+          }
+        }}
+        style={{ minHeight, maxHeight: EDITABLE_MAX_H }}
+        className={`text-sm text-[#111111] outline-none overflow-y-auto [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${padClassName}`}
+      />
+    </div>
+  );
+}
+
+// g 플래그 정규식은 lastIndex를 자기 안에 들고 있어서, 재귀 호출(굵게 안의 밑줄 등 중첩 서식) 사이에
+// 하나를 공유하면 바깥 루프의 위치가 안쪽 호출 때문에 망가진다 — 그래서 호출마다 새로 만든다.
+function makeInlineRe() {
+  return /\*\*(.+?)\*\*|__(.+?)__|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+}
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let i = 0;
   let m: RegExpExecArray | null;
-  INLINE_RE.lastIndex = 0;
-  while ((m = INLINE_RE.exec(text))) {
+  const re = makeInlineRe();
+  while ((m = re.exec(text))) {
     if (m.index > lastIndex) nodes.push(text.slice(lastIndex, m.index));
-    if (m[1] !== undefined) nodes.push(<strong key={`${keyPrefix}-${i++}`}>{m[1]}</strong>);
-    else if (m[2] !== undefined) nodes.push(<u key={`${keyPrefix}-${i++}`}>{m[2]}</u>);
+    if (m[1] !== undefined) nodes.push(<strong key={`${keyPrefix}-${i}`}>{renderInline(m[1], `${keyPrefix}-${i++}b`)}</strong>);
+    else if (m[2] !== undefined) nodes.push(<u key={`${keyPrefix}-${i}`}>{renderInline(m[2], `${keyPrefix}-${i++}u`)}</u>);
     else if (m[3] !== undefined)
       nodes.push(
         <a key={`${keyPrefix}-${i++}`} href={m[4]} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
           {m[3]}
         </a>
       );
-    lastIndex = INLINE_RE.lastIndex;
+    lastIndex = re.lastIndex;
   }
   if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
   return nodes;
@@ -370,19 +402,21 @@ export function ThreadPanel({
   onClose: () => void;
   width?: number;
 }) {
-  const [text, setText] = useState("");
+  const editableRef = useRef<HTMLDivElement>(null);
+  const [isEmpty, setIsEmpty] = useState(true);
   function submit() {
-    const v = text.trim();
-    if (!v || busy) return;
+    const el = editableRef.current;
+    if (!el || busy) return;
+    const v = serializeEditable(el).trim();
+    if (!v) return;
     onSend(v);
-    setText("");
+    el.innerHTML = "";
+    setIsEmpty(true);
   }
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [replies.length]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrowTextarea(textareaRef, text);
   return (
     <div
       style={{ "--thread-w": `${width}px` } as React.CSSProperties}
@@ -426,25 +460,19 @@ export function ThreadPanel({
         <div ref={bottomRef} />
       </div>
       <div className="border-t border-black/10 px-4 py-3">
-        <FormatToolbar textareaRef={textareaRef} value={text} setValue={setText} />
+        <FormatToolbar editableRef={editableRef} />
         <div className="flex gap-2 items-end">
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            rows={2}
+          <RichEditable
+            editableRef={editableRef}
             placeholder="답글 남기기…"
-            className="flex-1 border border-black/15 rounded-xl px-3 py-2 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
+            minHeight={40}
+            padClassName="px-3 py-2"
+            onEmptyChange={setIsEmpty}
+            onEnterSubmit={submit}
           />
           <button
             type="button"
-            disabled={busy || !text.trim()}
+            disabled={busy || isEmpty}
             onClick={submit}
             className="w-10 h-10 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
           >
@@ -589,14 +617,12 @@ export default function AskThread({
 }) {
   const [notify, setNotify] = useState(notifyEmail);
   const [items, setItems] = useState<Question[]>(initialQuestions);
-  const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrowTextarea(textareaRef, text);
+  const editableRef = useRef<HTMLDivElement>(null);
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
 
   async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
@@ -688,9 +714,9 @@ export default function AskThread({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const q = text.trim();
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    const q = editableRef.current ? serializeEditable(editableRef.current).trim() : "";
     if ((!q && files.length === 0) || busy) return;
     setBusy(true);
     setError("");
@@ -722,7 +748,7 @@ export default function AskThread({
     if (!insErr && data) {
       setItems((prev) => [...prev, data as Question]);
       fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "question" }) }).catch(() => {});
-      setText("");
+      if (editableRef.current) editableRef.current.innerHTML = "";
       setFiles([]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     } else if (insErr) {
@@ -865,7 +891,7 @@ export default function AskThread({
             </div>
           )}
           {error && <p className="text-xs text-red-600">{error}</p>}
-          <FormatToolbar textareaRef={textareaRef} value={text} setValue={setText} />
+          <FormatToolbar editableRef={editableRef} />
           <div className="flex gap-2 items-end">
             <label className="w-12 h-12 shrink-0 rounded-xl border border-black/15 flex items-center justify-center text-[#6B6B6B] hover:bg-[#F4F4F2] cursor-pointer">
               <Paperclip className="w-5 h-5" strokeWidth={2} />
@@ -878,19 +904,12 @@ export default function AskThread({
                 className="hidden"
               />
             </label>
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  submit(e);
-                }
-              }}
-              rows={1}
+            <RichEditable
+              editableRef={editableRef}
               placeholder="이드에게 궁금한 걸 남겨보세요…"
-              className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
+              minHeight={24}
+              padClassName="px-4 py-3"
+              onEnterSubmit={() => submit()}
             />
             <button
               type="submit"

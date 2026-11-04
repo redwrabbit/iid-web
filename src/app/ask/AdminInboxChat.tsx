@@ -9,8 +9,9 @@ import {
   ThreadPanel,
   DragHandle,
   useResizableWidth,
-  useAutoGrowTextarea,
   FormatToolbar,
+  RichEditable,
+  serializeEditable,
   renderRichText,
   type Question,
   type MessageReply,
@@ -215,14 +216,14 @@ export default function AdminInboxChat({
     await supabase.rpc("set_question_reaction", { p_question_id: questionId, p_field: field, p_emoji: emoji });
   }
 
-  const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrowTextarea(replyTextareaRef, reply);
+  const replyEditableRef = useRef<HTMLDivElement>(null);
+  const [replyEmpty, setReplyEmpty] = useState(true);
 
   async function sendReply() {
-    const text = reply.trim();
+    const el = replyEditableRef.current;
+    const text = el ? serializeEditable(el).trim() : "";
     if (!text || !activeId || !active) return;
     setBusy(true);
     setError("");
@@ -257,7 +258,8 @@ export default function AdminInboxChat({
       setQuestions((prev) => [...prev, data as (typeof prev)[number]]);
     }
     fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "answer", userId: activeId }) }).catch(() => {});
-    setReply("");
+    if (el) el.innerHTML = "";
+    setReplyEmpty(true);
   }
 
   // 질문/답변 말풍선 하나하나에 슬랙처럼 달 수 있는 쓰레드 답글
@@ -446,25 +448,19 @@ export default function AdminInboxChat({
                     ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 대기 중인 질문 ${active.pending}건에 함께 전달돼요.`
                     : "대기 중인 질문이 없어도 언제든 메시지를 보낼 수 있어요."}
                 </p>
-                <FormatToolbar textareaRef={replyTextareaRef} value={reply} setValue={setReply} />
+                <FormatToolbar editableRef={replyEditableRef} />
                 <div className="flex gap-2 items-end">
-                  <textarea
-                    ref={replyTextareaRef}
-                    value={reply}
-                    onChange={(e) => setReply(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        sendReply();
-                      }
-                    }}
-                    rows={2}
+                  <RichEditable
+                    editableRef={replyEditableRef}
                     placeholder="메시지를 입력하세요…"
-                    className="flex-1 border border-black/15 rounded-xl px-4 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
+                    minHeight={40}
+                    padClassName="px-4 py-2.5"
+                    onEmptyChange={setReplyEmpty}
+                    onEnterSubmit={sendReply}
                   />
                   <button
                     type="button"
-                    disabled={busy || !reply.trim()}
+                    disabled={busy || replyEmpty}
                     onClick={sendReply}
                     className="w-11 h-11 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
                   >
