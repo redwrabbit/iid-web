@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
-import { ArrowUp, Bold, Clock, List, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
+import { ArrowUp, Bold, Clock, Link2, List, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -61,7 +61,11 @@ function wrapSelection(el: HTMLTextAreaElement, value: string, setValue: (v: str
   });
 }
 
-// 선택된 줄들 앞에 "- "를 붙이거나(이미 다 붙어있으면) 뗀다.
+function isBulletLine(line: string) {
+  return line.startsWith("- ") || line.startsWith("* ");
+}
+
+// 선택된 줄들 앞에 "- "를 붙이거나(이미 다 붙어있으면, "* "로 붙은 것도 포함해서) 뗀다.
 function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
   const start = el.selectionStart ?? value.length;
   const end = el.selectionEnd ?? value.length;
@@ -70,11 +74,11 @@ function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v:
   const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
   const block = value.slice(lineStart, lineEnd);
   const lines = block.split("\n");
-  const allBulleted = lines.every((l) => l.startsWith("- ") || l.trim() === "");
+  const allBulleted = lines.every((l) => isBulletLine(l) || l.trim() === "");
   const newLines = lines.map((l) => {
     if (l.trim() === "") return l;
-    if (allBulleted) return l.replace(/^- /, "");
-    return l.startsWith("- ") ? l : "- " + l;
+    if (allBulleted) return l.replace(/^[-*] /, "");
+    return isBulletLine(l) ? l : "- " + l;
   });
   const newBlock = newLines.join("\n");
   const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
@@ -83,6 +87,24 @@ function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v:
   requestAnimationFrame(() => {
     el.focus();
     el.setSelectionRange(lineStart, Math.max(lineStart, lineEnd + delta));
+  });
+}
+
+// 선택한 글을 [글](url) 링크로 감싼다. 선택이 없으면 채워 넣을 틀을 끼워 넣는다.
+function insertLink(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const before = value.slice(0, start);
+  const selected = value.slice(start, end);
+  const after = value.slice(end);
+  const label = selected || "링크 텍스트";
+  const urlPlaceholder = "https://";
+  const next = `${before}[${label}](${urlPlaceholder})${after}`;
+  setValue(next);
+  const urlStart = before.length + label.length + 3; // "[" + label + "]("
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(urlStart, urlStart + urlPlaceholder.length);
   });
 }
 
@@ -118,47 +140,74 @@ export function FormatToolbar({ textareaRef, value, setValue }: { textareaRef: R
       >
         <List className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
+      <button
+        type="button"
+        aria-label="링크"
+        title="링크"
+        className={btnCls}
+        onClick={() => textareaRef.current && insertLink(textareaRef.current, value, setValue)}
+      >
+        <Link2 className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
     </div>
   );
 }
 
+const INLINE_RE = /\*\*(.+?)\*\*|__(.+?)__|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const regex = /\*\*(.+?)\*\*|__(.+?)__/g;
   let lastIndex = 0;
   let i = 0;
   let m: RegExpExecArray | null;
-  while ((m = regex.exec(text))) {
+  INLINE_RE.lastIndex = 0;
+  while ((m = INLINE_RE.exec(text))) {
     if (m.index > lastIndex) nodes.push(text.slice(lastIndex, m.index));
     if (m[1] !== undefined) nodes.push(<strong key={`${keyPrefix}-${i++}`}>{m[1]}</strong>);
     else if (m[2] !== undefined) nodes.push(<u key={`${keyPrefix}-${i++}`}>{m[2]}</u>);
-    lastIndex = regex.lastIndex;
+    else if (m[3] !== undefined)
+      nodes.push(
+        <a key={`${keyPrefix}-${i++}`} href={m[4]} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+          {m[3]}
+        </a>
+      );
+    lastIndex = INLINE_RE.lastIndex;
   }
   if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
   return nodes;
 }
 
-// 저장된 평문에서 **굵게**, __밑줄__, "- 글머리 기호" 줄을 실제 서식으로 그려준다.
+const HEADING_RE = /^\d+\.\s+/;
+
+// 저장된 평문에서 **굵게**, __밑줄__, [글](링크), "1. 소제목" 줄, "- "/"* " 글머리 기호를 실제 서식으로 그려준다.
 export function renderRichText(text: string): ReactNode {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let i = 0;
   let key = 0;
   while (i < lines.length) {
-    if (lines[i].startsWith("- ")) {
+    if (isBulletLine(lines[i])) {
       const items: string[] = [];
-      while (i < lines.length && lines[i].startsWith("- ")) {
+      while (i < lines.length && isBulletLine(lines[i])) {
         items.push(lines[i].slice(2));
         i++;
       }
       blocks.push(
-        <ul key={`ul-${key}`} className="list-disc pl-5">
+        <ul key={`ul-${key}`} className={`list-disc pl-5 ${blocks.length ? "mt-1" : ""}`}>
           {items.map((it, j) => (
             <li key={j}>{renderInline(it, `li-${key}-${j}`)}</li>
           ))}
         </ul>
       );
       key++;
+    } else if (HEADING_RE.test(lines[i])) {
+      blocks.push(
+        <div key={`h-${key}`} className={`font-bold ${blocks.length ? "mt-3" : ""}`}>
+          {renderInline(lines[i], `h-${key}`)}
+        </div>
+      );
+      key++;
+      i++;
     } else {
       const isLast = i === lines.length - 1;
       blocks.push(
