@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
-import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, Paperclip, Pencil, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
+import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, MessageCircle, Paperclip, Pencil, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -927,6 +927,7 @@ export default function AskThread({
 
   function replyTrigger(questionId: string, field: "question" | "answer", align: "start" | "end") {
     const count = repliesFor(questionId, field).length;
+    const hasReplies = count > 0;
     return (
       <button
         type="button"
@@ -935,9 +936,14 @@ export default function AskThread({
           setOpenReactionFor(null);
           setOpenThread({ questionId, field });
         }}
-        className={`text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline ${align === "end" ? "self-end" : "self-start"}`}
+        className={
+          hasReplies
+            ? `inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#FF4103] rounded-full px-2 py-0.5 hover:opacity-85 ${align === "end" ? "self-end" : "self-start"}`
+            : `text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline ${align === "end" ? "self-end" : "self-start"}`
+        }
       >
-        {count > 0 ? `${count}개의 댓글` : "답글달기"}
+        {hasReplies && <MessageCircle className="w-3 h-3" strokeWidth={2.25} />}
+        {hasReplies ? `${count}` : "답글달기"}
       </button>
     );
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, EyeOff, Eye, ChevronLeft, Pencil } from "lucide-react";
+import { Send, EyeOff, Eye, ChevronLeft, MessageCircle, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   AttachmentView,
@@ -471,9 +471,14 @@ export default function AdminInboxChat({
                           setOpenThread({ questionId: m.questionId, field: m.field });
                           setMobileView("thread");
                         }}
-                        className="text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline"
+                        className={
+                          replyCount > 0
+                            ? "inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#FF4103] rounded-full px-2 py-0.5 hover:opacity-85"
+                            : "text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline"
+                        }
                       >
-                        {replyCount > 0 ? `${replyCount}개의 댓글` : "답글달기"}
+                        {replyCount > 0 && <MessageCircle className="w-3 h-3" strokeWidth={2.25} />}
+                        {replyCount > 0 ? `${replyCount}` : "답글달기"}
                       </button>
                       {isAdminMsg && (
                         <button
