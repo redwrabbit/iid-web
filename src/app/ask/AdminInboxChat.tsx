@@ -3,7 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, EyeOff, Eye, ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AttachmentView, ReactionTrigger, ThreadPanel, DragHandle, useResizableWidth, type Question, type MessageReply } from "./AskThread";
+import {
+  AttachmentView,
+  ReactionTrigger,
+  ThreadPanel,
+  DragHandle,
+  useResizableWidth,
+  useAutoGrowTextarea,
+  FormatToolbar,
+  renderRichText,
+  type Question,
+  type MessageReply,
+} from "./AskThread";
 
 type Profile = { id: string; email: string; name: string; company: string | null; role: string | null };
 export type AdminQuestion = Question & { user_id: string };
@@ -207,6 +218,8 @@ export default function AdminInboxChat({
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(replyTextareaRef, reply);
 
   async function sendReply() {
     const text = reply.trim();
@@ -386,7 +399,7 @@ export default function AdminInboxChat({
                               : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
                           }`}
                         >
-                          {m.text}
+                          {renderRichText(m.text)}
                         </div>
                       )}
                       {m.attachments && m.attachments.length > 0 && (
@@ -433,8 +446,10 @@ export default function AdminInboxChat({
                     ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 대기 중인 질문 ${active.pending}건에 함께 전달돼요.`
                     : "대기 중인 질문이 없어도 언제든 메시지를 보낼 수 있어요."}
                 </p>
+                <FormatToolbar textareaRef={replyTextareaRef} value={reply} setValue={setReply} />
                 <div className="flex gap-2 items-end">
                   <textarea
+                    ref={replyTextareaRef}
                     value={reply}
                     onChange={(e) => setReply(e.target.value)}
                     onKeyDown={(e) => {
@@ -445,7 +460,7 @@ export default function AdminInboxChat({
                     }}
                     rows={2}
                     placeholder="메시지를 입력하세요…"
-                    className="flex-1 border border-black/15 rounded-xl px-4 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+                    className="flex-1 border border-black/15 rounded-xl px-4 py-2.5 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
                   />
                   <button
                     type="button"

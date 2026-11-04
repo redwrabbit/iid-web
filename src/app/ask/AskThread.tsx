@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Clock, Paperclip, X, FileText, SmilePlus, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
+import { ArrowUp, Bold, Clock, List, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -18,6 +18,160 @@ export type MessageReply = {
 
 function fmtThreadTime(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// 입력창이 글 길이에 맞춰 자동으로 늘어나게 (최대 높이까지, 그 이상은 스크롤).
+const TEXTAREA_MAX_H = 240;
+export function useAutoGrowTextarea(ref: RefObject<HTMLTextAreaElement | null>, value: string) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, TEXTAREA_MAX_H) + "px";
+  }, [ref, value]);
+}
+
+// **굵게** / __밑줄__ 선택 영역을 감싸거나 풀고, 커서/선택 위치를 유지한다.
+function wrapSelection(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void, marker: string) {
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const before = value.slice(0, start);
+  const selected = value.slice(start, end);
+  const after = value.slice(end);
+  const alreadyWrapped = selected.length >= marker.length * 2 && selected.startsWith(marker) && selected.endsWith(marker);
+  let next: string, newStart: number, newEnd: number;
+  if (selected && alreadyWrapped) {
+    const inner = selected.slice(marker.length, selected.length - marker.length);
+    next = before + inner + after;
+    newStart = start;
+    newEnd = start + inner.length;
+  } else if (selected) {
+    next = before + marker + selected + marker + after;
+    newStart = start + marker.length;
+    newEnd = newStart + selected.length;
+  } else {
+    next = before + marker + marker + after;
+    newStart = start + marker.length;
+    newEnd = newStart;
+  }
+  setValue(next);
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(newStart, newEnd);
+  });
+}
+
+// 선택된 줄들 앞에 "- "를 붙이거나(이미 다 붙어있으면) 뗀다.
+function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const lineEndIdx = value.indexOf("\n", end);
+  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+  const block = value.slice(lineStart, lineEnd);
+  const lines = block.split("\n");
+  const allBulleted = lines.every((l) => l.startsWith("- ") || l.trim() === "");
+  const newLines = lines.map((l) => {
+    if (l.trim() === "") return l;
+    if (allBulleted) return l.replace(/^- /, "");
+    return l.startsWith("- ") ? l : "- " + l;
+  });
+  const newBlock = newLines.join("\n");
+  const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
+  setValue(next);
+  const delta = newBlock.length - block.length;
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(lineStart, Math.max(lineStart, lineEnd + delta));
+  });
+}
+
+// 굵게/밑줄/목록 서식 버튼 한 줄. textarea 위에 올려서 쓴다.
+export function FormatToolbar({ textareaRef, value, setValue }: { textareaRef: RefObject<HTMLTextAreaElement | null>; value: string; setValue: (v: string) => void }) {
+  const btnCls = "w-7 h-7 rounded-md flex items-center justify-center text-[#6B6B6B] hover:text-[#FF4103] hover:bg-[#F4F4F2]";
+  return (
+    <div className="flex items-center gap-0.5 mb-1">
+      <button
+        type="button"
+        aria-label="굵게"
+        title="굵게"
+        className={btnCls}
+        onClick={() => textareaRef.current && wrapSelection(textareaRef.current, value, setValue, "**")}
+      >
+        <Bold className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+      <button
+        type="button"
+        aria-label="밑줄"
+        title="밑줄"
+        className={btnCls}
+        onClick={() => textareaRef.current && wrapSelection(textareaRef.current, value, setValue, "__")}
+      >
+        <UnderlineIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+      <button
+        type="button"
+        aria-label="글머리 기호"
+        title="글머리 기호"
+        className={btnCls}
+        onClick={() => textareaRef.current && toggleBulletLines(textareaRef.current, value, setValue)}
+      >
+        <List className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+    </div>
+  );
+}
+
+function renderInline(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*|__(.+?)__/g;
+  let lastIndex = 0;
+  let i = 0;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text))) {
+    if (m.index > lastIndex) nodes.push(text.slice(lastIndex, m.index));
+    if (m[1] !== undefined) nodes.push(<strong key={`${keyPrefix}-${i++}`}>{m[1]}</strong>);
+    else if (m[2] !== undefined) nodes.push(<u key={`${keyPrefix}-${i++}`}>{m[2]}</u>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
+
+// 저장된 평문에서 **굵게**, __밑줄__, "- 글머리 기호" 줄을 실제 서식으로 그려준다.
+export function renderRichText(text: string): ReactNode {
+  const lines = text.split("\n");
+  const blocks: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    if (lines[i].startsWith("- ")) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].startsWith("- ")) {
+        items.push(lines[i].slice(2));
+        i++;
+      }
+      blocks.push(
+        <ul key={`ul-${key}`} className="list-disc pl-5">
+          {items.map((it, j) => (
+            <li key={j}>{renderInline(it, `li-${key}-${j}`)}</li>
+          ))}
+        </ul>
+      );
+      key++;
+    } else {
+      const isLast = i === lines.length - 1;
+      blocks.push(
+        <span key={`ln-${key}`}>
+          {renderInline(lines[i], `ln-${key}`)}
+          {!isLast && <br />}
+        </span>
+      );
+      key++;
+      i++;
+    }
+  }
+  return blocks;
 }
 
 // 칸 사이 경계선을 드래그로 당기면 폭이 바뀝니다. onDrag는 마우스가 움직인 만큼(px)을 넘겨줍니다.
@@ -124,6 +278,8 @@ export function ThreadPanel({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [replies.length]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(textareaRef, text);
   return (
     <div
       style={{ "--thread-w": `${width}px` } as React.CSSProperties}
@@ -140,7 +296,7 @@ export function ThreadPanel({
           <div className="text-[11px] text-[#9A9A9A] mb-1">
             {parent.label} · {fmtThreadTime(parent.time)}
           </div>
-          {parent.text && <div className="text-sm whitespace-pre-wrap text-[#111111]">{parent.text}</div>}
+          {parent.text && <div className="text-sm whitespace-pre-wrap text-[#111111]">{renderRichText(parent.text)}</div>}
           {parent.attachments && parent.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {parent.attachments.map((a, i) => (
@@ -159,7 +315,7 @@ export function ThreadPanel({
                 r.sender === viewerRole ? "bg-[#FF4103] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
               }`}
             >
-              {r.text}
+              {renderRichText(r.text)}
             </div>
             <div className="text-[10px] text-[#B0B0B0]">{fmtThreadTime(r.created_at)}</div>
           </div>
@@ -167,8 +323,10 @@ export function ThreadPanel({
         <div ref={bottomRef} />
       </div>
       <div className="border-t border-black/10 px-4 py-3">
+        <FormatToolbar textareaRef={textareaRef} value={text} setValue={setText} />
         <div className="flex gap-2 items-end">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -179,7 +337,7 @@ export function ThreadPanel({
             }}
             rows={2}
             placeholder="답글 남기기…"
-            className="flex-1 border border-black/15 rounded-xl px-3 py-2 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+            className="flex-1 border border-black/15 rounded-xl px-3 py-2 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
           />
           <button
             type="button"
@@ -334,6 +492,8 @@ export default function AskThread({
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(textareaRef, text);
   const [openReactionFor, setOpenReactionFor] = useState<string | null>(null);
 
   async function setReaction(questionId: string, field: "question" | "answer", emoji: string | null) {
@@ -526,7 +686,7 @@ export default function AskThread({
                   <div className="max-w-[85%] flex flex-col gap-2 items-end">
                     {m.text && (
                       <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
-                        {m.text}
+                        {renderRichText(m.text)}
                       </div>
                     )}
                     {m.attachments && m.attachments.length > 0 && (
@@ -555,7 +715,7 @@ export default function AskThread({
                 <div key={m.key} className="flex flex-col gap-1 items-start">
                   <div className="max-w-[92%] w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
                     <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
-                    {m.text}
+                    {renderRichText(m.text)}
                   </div>
                   <ReactionTrigger
                     reaction={m.reaction}
@@ -602,6 +762,7 @@ export default function AskThread({
             </div>
           )}
           {error && <p className="text-xs text-red-600">{error}</p>}
+          <FormatToolbar textareaRef={textareaRef} value={text} setValue={setText} />
           <div className="flex gap-2 items-end">
             <label className="w-12 h-12 shrink-0 rounded-xl border border-black/15 flex items-center justify-center text-[#6B6B6B] hover:bg-[#F4F4F2] cursor-pointer">
               <Paperclip className="w-5 h-5" strokeWidth={2} />
@@ -615,6 +776,7 @@ export default function AskThread({
               />
             </label>
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
@@ -625,7 +787,7 @@ export default function AskThread({
               }}
               rows={1}
               placeholder="이드에게 궁금한 걸 남겨보세요…"
-              className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+              className="flex-1 border border-black/15 rounded-xl px-4 py-3 text-sm bg-[#FAFAF9] text-[#111111] placeholder:text-[#9A9A9A] resize-none focus:outline-none focus:ring-2 focus:ring-[#FF4103] overflow-y-auto"
             />
             <button
               type="submit"
