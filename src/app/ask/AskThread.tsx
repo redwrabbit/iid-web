@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
-import { ArrowUp, Bold, Clock, Link2, List, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
+import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, Paperclip, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -65,6 +65,8 @@ function isBulletLine(line: string) {
   return line.startsWith("- ") || line.startsWith("* ");
 }
 
+const NUMBERED_PREFIX_RE = /^\d+\.\s+/;
+
 // 선택된 줄들 앞에 "- "를 붙이거나(이미 다 붙어있으면, "* "로 붙은 것도 포함해서) 뗀다.
 function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
   const start = el.selectionStart ?? value.length;
@@ -79,6 +81,32 @@ function toggleBulletLines(el: HTMLTextAreaElement, value: string, setValue: (v:
     if (l.trim() === "") return l;
     if (allBulleted) return l.replace(/^[-*] /, "");
     return isBulletLine(l) ? l : "- " + l;
+  });
+  const newBlock = newLines.join("\n");
+  const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
+  setValue(next);
+  const delta = newBlock.length - block.length;
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(lineStart, Math.max(lineStart, lineEnd + delta));
+  });
+}
+
+// 선택된 줄들에 "1. 2. 3." 번호를 매기거나(이미 다 매겨져 있으면) 뗀다.
+function toggleNumberedLines(el: HTMLTextAreaElement, value: string, setValue: (v: string) => void) {
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const lineEndIdx = value.indexOf("\n", end);
+  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+  const block = value.slice(lineStart, lineEnd);
+  const lines = block.split("\n");
+  const allNumbered = lines.every((l) => NUMBERED_PREFIX_RE.test(l) || l.trim() === "");
+  let n = 1;
+  const newLines = lines.map((l) => {
+    if (l.trim() === "") return l;
+    const bare = l.replace(NUMBERED_PREFIX_RE, "");
+    return allNumbered ? bare : `${n++}. ${bare}`;
   });
   const newBlock = newLines.join("\n");
   const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
@@ -142,6 +170,15 @@ export function FormatToolbar({ textareaRef, value, setValue }: { textareaRef: R
       </button>
       <button
         type="button"
+        aria-label="번호 매기기"
+        title="번호 매기기"
+        className={btnCls}
+        onClick={() => textareaRef.current && toggleNumberedLines(textareaRef.current, value, setValue)}
+      >
+        <ListOrdered className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+      <button
+        type="button"
         aria-label="링크"
         title="링크"
         className={btnCls}
@@ -177,9 +214,8 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return nodes;
 }
 
-const HEADING_RE = /^\d+\.\s+/;
-
 // 저장된 평문에서 **굵게**, __밑줄__, [글](링크), "1. 소제목" 줄, "- "/"* " 글머리 기호를 실제 서식으로 그려준다.
+// "1. " 줄이 연달아 두 줄 이상 나오면 번호 매기기 목록으로, 혼자 나오면(소제목처럼 쓰인 것으로 보고) 굵은 제목으로 그린다.
 export function renderRichText(text: string): ReactNode {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
@@ -200,14 +236,32 @@ export function renderRichText(text: string): ReactNode {
         </ul>
       );
       key++;
-    } else if (HEADING_RE.test(lines[i])) {
-      blocks.push(
-        <div key={`h-${key}`} className={`font-bold ${blocks.length ? "mt-3" : ""}`}>
-          {renderInline(lines[i], `h-${key}`)}
-        </div>
-      );
-      key++;
-      i++;
+    } else if (NUMBERED_PREFIX_RE.test(lines[i])) {
+      const items: string[] = [];
+      let j = i;
+      while (j < lines.length && NUMBERED_PREFIX_RE.test(lines[j])) {
+        items.push(lines[j].replace(NUMBERED_PREFIX_RE, ""));
+        j++;
+      }
+      if (items.length >= 2) {
+        blocks.push(
+          <ol key={`ol-${key}`} className={`list-decimal pl-5 ${blocks.length ? "mt-1" : ""}`}>
+            {items.map((it, j2) => (
+              <li key={j2}>{renderInline(it, `oli-${key}-${j2}`)}</li>
+            ))}
+          </ol>
+        );
+        key++;
+        i = j;
+      } else {
+        blocks.push(
+          <div key={`h-${key}`} className={`font-bold ${blocks.length ? "mt-3" : ""}`}>
+            {renderInline(lines[i], `h-${key}`)}
+          </div>
+        );
+        key++;
+        i++;
+      }
     } else {
       const isLast = i === lines.length - 1;
       blocks.push(
