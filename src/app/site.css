@@ -706,12 +706,14 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
 .home__contact-item.home__contact-item--instagram{background:#C13584;border-color:#C13584;color:#fff}
 .home__contact-item.home__contact-item--youtube{background:var(--red);border-color:var(--red);color:#fff}
 .home__contact-item.home__contact-item--linkedin{background:#0A66C2;border-color:#0A66C2;color:#fff}
-.home__contact-item.home__contact-item--brunch{border-color:var(--logo-black)}
+/* 브런치스토리: 노란 원 + 검은 말풍선 아이콘(새 브랜드 로고) */
+.home__contact-item.home__contact-item--brunch{background:#FAE100;border-color:#FAE100}
 @media (hover:hover) and (pointer:fine){
   .home__contact-item.home__contact-item--mail:hover,
   .home__contact-item.home__contact-item--instagram:hover,
   .home__contact-item.home__contact-item--youtube:hover,
-  .home__contact-item.home__contact-item--linkedin:hover{opacity:.8}
+  .home__contact-item.home__contact-item--linkedin:hover,
+  .home__contact-item.home__contact-item--brunch:hover{opacity:.8}
 }
 
 /* ───── v3: 같은 톤(흰 바탕 + 검정 선 + 주황) · 섹션 제목 · 서비스/플랜 정리 · 이드 소개 ───── */
