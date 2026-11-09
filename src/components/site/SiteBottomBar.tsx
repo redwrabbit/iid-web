@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const NEXT_STEPS = [
@@ -25,12 +26,14 @@ function YoutubeIcon() {
   );
 }
 
+// 흰 사각 배지 위에 파란 "in" 글자 — 참고 이미지의 링크드인 아이콘 그대로.
 function LinkedinIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-      <rect x="2" y="9" width="4" height="12" />
-      <circle cx="4" cy="4" r="2" />
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="5" width="14" height="14" rx="3" fill="#ffffff" />
+      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="700" fontFamily="Arial, Helvetica, sans-serif" letterSpacing="-0.5" fill="#007BB6">
+        in
+      </text>
     </svg>
   );
 }
@@ -44,24 +47,16 @@ function MailIcon() {
   );
 }
 
-// 브런치스토리 새 앱 아이콘: 노란 원 위의 검은 말풍선 + "Ch" 글자.
-function BrunchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="13" rx="6.5" fill="#111111" />
-      <path d="M7.5 17 L7.5 20.5 L11 17 Z" fill="#111111" />
-      <text x="12" y="13.6" textAnchor="middle" fontSize="7.3" fontWeight="700" fontFamily="Arial, Helvetica, sans-serif" letterSpacing="-0.3" fill="#FAE100">
-        Ch
-      </text>
-    </svg>
-  );
-}
-
 const CONTACT_LINKS = [
   { href: "mailto:iid.solutor@gmail.com", label: "이메일", variant: "mail", icon: <MailIcon /> },
   { href: "https://www.instagram.com/iid_hrer", label: "Instagram", variant: "instagram", icon: <InstagramIcon /> },
   { href: "https://www.youtube.com/@iid_story", label: "YouTube", variant: "youtube", icon: <YoutubeIcon /> },
-  { href: "https://brunch.co.kr/@iid-hr", label: "Brunch", variant: "brunch", icon: <BrunchIcon /> },
+  {
+    href: "https://brunch.co.kr/@iid-hr",
+    label: "Brunch",
+    variant: "brunch",
+    icon: <Image src="/brunch-logo.png" alt="" width={46} height={46} />,
+  },
   { href: "https://www.linkedin.com/in/shineastkim/", label: "LinkedIn", variant: "linkedin", icon: <LinkedinIcon /> },
 ];
 
