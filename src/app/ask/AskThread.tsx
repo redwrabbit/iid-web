@@ -319,7 +319,7 @@ export function RichEditable({
           }
         }}
         style={{ minHeight, maxHeight: EDITABLE_MAX_H }}
-        className={`text-sm text-[#111111] outline-none overflow-y-auto [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li_ul]:mt-0.5 [&_li_ol]:mt-0.5 ${padClassName}`}
+        className={`text-sm text-[#111111] outline-none overflow-y-auto [&_ul]:list-disc [&_ul]:list-inside [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:pl-5 [&_li_ul]:mt-0.5 [&_li_ol]:mt-0.5 ${padClassName}`}
       />
     </div>
   );
@@ -356,7 +356,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 function renderListNode(kind: "bullet" | "number", items: ListItemNode[], keyPrefix: string, depth: number): ReactNode {
   const Tag = kind === "bullet" ? "ul" : "ol";
   return (
-    <Tag className={`${kind === "bullet" ? "list-disc" : "list-decimal"} pl-5 ${depth === 0 ? "" : "mt-0.5"}`}>
+    <Tag className={`${kind === "bullet" ? "list-disc" : "list-decimal"} list-inside pl-5 ${depth === 0 ? "" : "mt-0.5"}`}>
       {items.map((it, j) => (
         <li key={j}>
           {renderInline(it.content, `${keyPrefix}-${j}`)}
