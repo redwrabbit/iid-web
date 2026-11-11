@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
-import { ArrowUp, Bold, Clock, Link2, List, ListOrdered, MessageCircle, Paperclip, Pencil, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
+import { ArrowUp, Bold, Clock, Indent, Link2, List, ListOrdered, MessageCircle, Outdent, Paperclip, Pencil, Underline as UnderlineIcon, X, FileText, SmilePlus, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type Attachment = { url: string; name: string; type: string };
@@ -20,11 +20,39 @@ function fmtThreadTime(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function isBulletLine(line: string) {
-  return line.startsWith("- ") || line.startsWith("* ");
+// 글머리 기호/번호 매기기 줄을 들여쓰기(2칸 = 한 단계)까지 함께 읽는다. 상하위 레벨(하위 글머리 기호)은
+// 줄 앞의 공백 개수로 표현한다 — 저장 형식 자체는 그대로 평문이라 별도 스키마 변경이 필요 없다.
+const LIST_LINE_RE = /^( *)([-*]|\d+\.)\s+(.*)$/;
+
+type ListLine = { level: number; kind: "bullet" | "number"; content: string };
+
+function classifyListLine(line: string): ListLine | null {
+  const m = LIST_LINE_RE.exec(line);
+  if (!m) return null;
+  const kind: "bullet" | "number" = m[2] === "-" || m[2] === "*" ? "bullet" : "number";
+  return { level: Math.floor(m[1].length / 2), kind, content: m[3] };
 }
 
-const NUMBERED_PREFIX_RE = /^\d+\.\s+/;
+type ListItemNode = { content: string; children: { kind: "bullet" | "number"; items: ListItemNode[] } | null };
+
+// classified 배열에서 level 단계의 같은 종류(kind) 항목들을 모으고, 그보다 들여써진 다음 줄들은
+// 그 항목의 하위 목록으로 재귀적으로 묶는다.
+function parseListItems(classified: (ListLine | null)[], pos: { i: number }, level: number, kind: "bullet" | "number"): ListItemNode[] {
+  const items: ListItemNode[] = [];
+  while (pos.i < classified.length) {
+    const cur = classified[pos.i];
+    if (!cur || cur.level !== level || cur.kind !== kind) break;
+    pos.i++;
+    let children: ListItemNode["children"] = null;
+    const next = classified[pos.i];
+    if (next && next.level > level) {
+      const childItems = parseListItems(classified, pos, level + 1, next.kind);
+      children = { kind: next.kind, items: childItems };
+    }
+    items.push({ content: cur.content, children });
+  }
+  return items;
+}
 
 function isEditableEmpty(el: HTMLDivElement | null) {
   if (!el) return true;
@@ -53,6 +81,14 @@ function toggleBulletList(el: HTMLDivElement) {
 function toggleNumberedList(el: HTMLDivElement) {
   el.focus();
   document.execCommand("insertOrderedList");
+}
+function indentList(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("indent");
+}
+function outdentList(el: HTMLDivElement) {
+  el.focus();
+  document.execCommand("outdent");
 }
 // 선택한 글을 링크로 감싼다. 선택이 없으면 주소 자체를 글자로 끼워 넣는다.
 function insertLinkCmd(el: HTMLDivElement) {
@@ -85,6 +121,12 @@ export function FormatToolbar({ editableRef }: { editableRef: RefObject<HTMLDivE
       </button>
       <button type="button" aria-label="번호 매기기" title="번호 매기기" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && toggleNumberedList(editableRef.current)}>
         <ListOrdered className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+      <button type="button" aria-label="하위 수준(들여쓰기)" title="하위 수준(들여쓰기) · Tab" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && indentList(editableRef.current)}>
+        <Indent className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </button>
+      <button type="button" aria-label="상위 수준(내어쓰기)" title="상위 수준(내어쓰기) · Shift+Tab" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && outdentList(editableRef.current)}>
+        <Outdent className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>
       <button type="button" aria-label="링크" title="링크" className={btnCls} onMouseDown={keepFocus} onClick={() => editableRef.current && insertLinkCmd(editableRef.current)}>
         <Link2 className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -119,6 +161,48 @@ export function serializeEditable(root: HTMLDivElement): string {
     runs = [];
   }
 
+// 들여쓰기(Tab/Outdent) 단계를 2칸 공백으로 적는다 — classifyListLine이 읽는 들여쓰기 표기와 맞춘다.
+  function indentFor(depth: number) {
+    return "  ".repeat(depth);
+  }
+
+  // li 하나를 처리한다: 자기 글자(own)는 바로 줄로 만들고, 그 안에 중첩된 목록(들여쓰기로 생긴 하위
+  // 글머리 기호)은 따로 모아뒀다가 한 단계 더 깊은 depth로 재귀 처리한다 — 섞어서 걸으면 중첩 목록이
+  // 지금 처리 중인 li의 줄을 앞당겨 끊어버리기 때문에 반드시 나눠야 한다.
+  // 들여쓰기(Tab)로 생긴 하위 목록을 브라우저가 항상 <li>안에 넣어주는 건 아니다 — 크롬은 종종
+  // <ul><li>a</li><ul><li>b</li></ul><li>c</li></ul>처럼 li의 "형제"로 바로 끼워 넣는다. 그래서
+  // li뿐 아니라 목록의 모든 자식을 순서대로 보면서, ul/ol이 나오면 그때마다 바로 앞 li에 딸린 하위
+  // 목록으로 보고 한 단계 더 깊게 처리한다.
+  function processList(listEl: Element, markers: readonly string[], depth: number) {
+    if (runs.length) flushLine();
+    const tag = listEl.tagName.toLowerCase();
+    let n = 1;
+    Array.from(listEl.children).forEach((child) => {
+      const ctag = child.tagName.toLowerCase();
+      if (ctag === "ul" || ctag === "ol") {
+        processList(child, markers, depth + 1);
+        return;
+      }
+      if (ctag !== "li") return;
+      const prefix = indentFor(depth) + (tag === "ul" ? "- " : `${n++}. `);
+      runs = [];
+      const nestedLists: Element[] = [];
+      child.childNodes.forEach((c) => {
+        if (c.nodeType === Node.ELEMENT_NODE) {
+          const innerTag = (c as Element).tagName.toLowerCase();
+          if (innerTag === "ul" || innerTag === "ol") {
+            nestedLists.push(c as Element);
+            return;
+          }
+        }
+        walk(c, markers, true);
+      });
+      lines.push(prefix + renderRuns().trimEnd());
+      runs = [];
+      nestedLists.forEach((nested) => processList(nested, markers, depth + 1));
+    });
+  }
+
   // insideLi: 목록 항목(li) 안을 걷는 중인지. 우리 저장 형식은 글머리 기호 한 줄에 내용 한 줄만 담을 수
   // 있어서, li 안에서 줄바꿈(Shift+Enter로 생긴 <br>)을 그대로 줄바꿈 처리하면 그 줄이 목록 밖으로
   // 튀어나가 버린다 — 그래서 li 안에서는 <br>을 공백으로 뭉갠다.
@@ -131,15 +215,7 @@ export function serializeEditable(root: HTMLDivElement): string {
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
     if (tag === "ul" || tag === "ol") {
-      if (runs.length) flushLine();
-      let n = 1;
-      el.querySelectorAll(":scope > li").forEach((li) => {
-        const prefix = tag === "ul" ? "- " : `${n++}. `;
-        runs = [];
-        li.childNodes.forEach((c) => walk(c, markers, true));
-        lines.push(prefix + renderRuns().trimEnd());
-        runs = [];
-      });
+      processList(el, markers, 0);
       return;
     }
     if (tag === "div" || tag === "p") {
@@ -229,10 +305,16 @@ export function RichEditable({
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             onEnterSubmit();
+            return;
+          }
+          if (e.key === "Tab") {
+            e.preventDefault();
+            if (e.shiftKey) document.execCommand("outdent");
+            else document.execCommand("indent");
           }
         }}
         style={{ minHeight, maxHeight: EDITABLE_MAX_H }}
-        className={`text-sm text-[#111111] outline-none overflow-y-auto [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${padClassName}`}
+        className={`text-sm text-[#111111] outline-none overflow-y-auto [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li_ul]:mt-0.5 [&_li_ol]:mt-0.5 ${padClassName}`}
       />
     </div>
   );
@@ -266,54 +348,49 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return nodes;
 }
 
-// 저장된 평문에서 **굵게**, __밑줄__, [글](링크), "1. 소제목" 줄, "- "/"* " 글머리 기호를 실제 서식으로 그려준다.
-// "1. " 줄이 연달아 두 줄 이상 나오면 번호 매기기 목록으로, 혼자 나오면(소제목처럼 쓰인 것으로 보고) 굵은 제목으로 그린다.
+function renderListNode(kind: "bullet" | "number", items: ListItemNode[], keyPrefix: string, depth: number): ReactNode {
+  const Tag = kind === "bullet" ? "ul" : "ol";
+  return (
+    <Tag className={`${kind === "bullet" ? "list-disc" : "list-decimal"} pl-5 ${depth === 0 ? "" : "mt-0.5"}`}>
+      {items.map((it, j) => (
+        <li key={j}>
+          {renderInline(it.content, `${keyPrefix}-${j}`)}
+          {it.children && renderListNode(it.children.kind, it.children.items, `${keyPrefix}-${j}c`, depth + 1)}
+        </li>
+      ))}
+    </Tag>
+  );
+}
+
+// 저장된 평문에서 **굵게**, __밑줄__, [글](링크), "1. 소제목" 줄, "- "/"* " 글머리 기호(들여쓰기로 하위 레벨도)를
+// 실제 서식으로 그려준다. "1. " 줄이 연달아 두 줄 이상(또는 하위 목록이 딸려) 나오면 번호 매기기 목록으로,
+// 혼자 나오면(소제목처럼 쓰인 것으로 보고) 굵은 제목으로 그린다.
 export function renderRichText(text: string): ReactNode {
   const lines = text.split("\n");
+  const classified = lines.map(classifyListLine);
   const blocks: ReactNode[] = [];
   let i = 0;
   let key = 0;
   while (i < lines.length) {
-    if (isBulletLine(lines[i])) {
-      const items: string[] = [];
-      while (i < lines.length && isBulletLine(lines[i])) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      blocks.push(
-        <ul key={`ul-${key}`} className={`list-disc pl-5 ${blocks.length ? "mt-1" : ""}`}>
-          {items.map((it, j) => (
-            <li key={j}>{renderInline(it, `li-${key}-${j}`)}</li>
-          ))}
-        </ul>
-      );
-      key++;
-    } else if (NUMBERED_PREFIX_RE.test(lines[i])) {
-      const items: string[] = [];
-      let j = i;
-      while (j < lines.length && NUMBERED_PREFIX_RE.test(lines[j])) {
-        items.push(lines[j].replace(NUMBERED_PREFIX_RE, ""));
-        j++;
-      }
-      if (items.length >= 2) {
-        blocks.push(
-          <ol key={`ol-${key}`} className={`list-decimal pl-5 ${blocks.length ? "mt-1" : ""}`}>
-            {items.map((it, j2) => (
-              <li key={j2}>{renderInline(it, `oli-${key}-${j2}`)}</li>
-            ))}
-          </ol>
-        );
-        key++;
-        i = j;
-      } else {
+    const cl = classified[i];
+    if (cl) {
+      const pos = { i };
+      const items = parseListItems(classified, pos, cl.level, cl.kind);
+      if (cl.kind === "number" && cl.level === 0 && items.length === 1 && !items[0].children) {
         blocks.push(
           <div key={`h-${key}`} className={`font-bold ${blocks.length ? "mt-3" : ""}`}>
-            {renderInline(lines[i], `h-${key}`)}
+            {renderInline(items[0].content, `h-${key}`)}
           </div>
         );
-        key++;
-        i++;
+      } else {
+        blocks.push(
+          <div key={`l-${key}`} className={blocks.length ? "mt-1" : ""}>
+            {renderListNode(cl.kind, items, `l-${key}`, 0)}
+          </div>
+        );
       }
+      i = pos.i;
+      key++;
     } else {
       const isLast = i === lines.length - 1;
       blocks.push(
@@ -345,35 +422,32 @@ function inlineToHtml(text: string): string {
   return out;
 }
 
+function listNodeToHtml(kind: "bullet" | "number", items: ListItemNode[]): string {
+  const tag = kind === "bullet" ? "ul" : "ol";
+  return `<${tag}>${items
+    .map((it) => `<li>${inlineToHtml(it.content)}${it.children ? listNodeToHtml(it.children.kind, it.children.items) : ""}</li>`)
+    .join("")}</${tag}>`;
+}
+
 // 저장된 평문을 다시 고칠 수 있게 contentEditable에 넣을 HTML로 바꾼다 — renderRichText와 같은 규칙으로 읽는다.
 // "1. 소제목" 처럼 혼자 나온 번호줄은 화면에선 굵게 보이지만, 그 굵기는 마커가 아니라 규칙에서 나오는
 // 것이라 여기서도 그대로 <b>로 감싸지 않는다 — 감싸면 저장할 때 "**1. ...**"로 실제 마커가 붙어버린다.
 function richTextToHtml(text: string): string {
   const lines = text.split("\n");
+  const classified = lines.map(classifyListLine);
   const blocks: string[] = [];
   let i = 0;
   while (i < lines.length) {
-    if (isBulletLine(lines[i])) {
-      const items: string[] = [];
-      while (i < lines.length && isBulletLine(lines[i])) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      blocks.push(`<ul>${items.map((it) => `<li>${inlineToHtml(it)}</li>`).join("")}</ul>`);
-    } else if (NUMBERED_PREFIX_RE.test(lines[i])) {
-      const items: string[] = [];
-      let j = i;
-      while (j < lines.length && NUMBERED_PREFIX_RE.test(lines[j])) {
-        items.push(lines[j].replace(NUMBERED_PREFIX_RE, ""));
-        j++;
-      }
-      if (items.length >= 2) {
-        blocks.push(`<ol>${items.map((it) => `<li>${inlineToHtml(it)}</li>`).join("")}</ol>`);
-        i = j;
+    const cl = classified[i];
+    if (cl) {
+      const pos = { i };
+      const items = parseListItems(classified, pos, cl.level, cl.kind);
+      if (cl.kind === "number" && cl.level === 0 && items.length === 1 && !items[0].children) {
+        blocks.push(`<div>${inlineToHtml(items[0].content)}</div>`);
       } else {
-        blocks.push(`<div>${inlineToHtml(lines[i])}</div>`);
-        i++;
+        blocks.push(listNodeToHtml(cl.kind, items));
       }
+      i = pos.i;
     } else {
       blocks.push(`<div>${inlineToHtml(lines[i]) || "<br>"}</div>`);
       i++;

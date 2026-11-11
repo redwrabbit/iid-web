@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, EyeOff, Eye, ChevronLeft, MessageCircle, Pencil } from "lucide-react";
+import { Send, EyeOff, Eye, ChevronLeft, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   AttachmentView,
@@ -234,6 +234,23 @@ export default function AdminInboxChat({
       );
     }
     setEditingAnswerKey(null);
+  }
+
+  // 답변을 지운다. 질문 없이 그냥 보낸 메시지(question이 빈 행)는 행 자체를 지우고,
+  // 실제 질문에 달린 답변이면 answer만 비워서 다시 "대기 중" 상태로 되돌린다.
+  async function deleteAnswer(m: ChatMsg) {
+    if (!window.confirm("이 답변을 삭제할까요?")) return;
+    const matching = questions.filter((q) => q.user_id === activeId && q.answered_at === m.time && q.answer === m.text);
+    const toDeleteIds = matching.filter((q) => !q.question && !(q.attachments && q.attachments.length > 0)).map((q) => q.id);
+    const toClearIds = matching.filter((q) => q.question || (q.attachments && q.attachments.length > 0)).map((q) => q.id);
+    const supabase = createClient();
+    if (toDeleteIds.length) await supabase.from("questions").delete().in("id", toDeleteIds);
+    if (toClearIds.length) await supabase.from("questions").update({ answer: null, answered_at: null }).in("id", toClearIds);
+    setQuestions((prev) =>
+      prev
+        .filter((q) => !toDeleteIds.includes(q.id))
+        .map((q) => (toClearIds.includes(q.id) ? { ...q, answer: null, answered_at: null } : q))
+    );
   }
 
   const [busy, setBusy] = useState(false);
@@ -481,17 +498,30 @@ export default function AdminInboxChat({
                         {replyCount > 0 ? `${replyCount}` : "답글달기"}
                       </button>
                       {isAdminMsg && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingAnswerKey(m.key);
-                          }}
-                          aria-label="수정"
-                          className="text-[#C4C4C4] hover:text-[#FF4103]"
-                        >
-                          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAnswerKey(m.key);
+                            }}
+                            aria-label="수정"
+                            className="text-[#C4C4C4] hover:text-[#FF4103]"
+                          >
+                            <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteAnswer(m);
+                            }}
+                            aria-label="삭제"
+                            className="text-[#C4C4C4] hover:text-red-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
