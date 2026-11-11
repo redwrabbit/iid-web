@@ -303,6 +303,11 @@ export function RichEditable({
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            // 목록(글머리 기호/번호 매기기) 안에 있을 땐 Enter를 그대로 브라우저에 맡긴다 — 새 항목이
+            // 이어지거나(내용이 있을 때), 목록을 빠져나온다(빈 항목에서 한 번 더 Enter). 다 쓴 뒤
+            // 보내려면 목록 밖으로 나와서 Enter를 치거나 전송 버튼을 누르면 된다.
+            const inList = document.queryCommandState("insertUnorderedList") || document.queryCommandState("insertOrderedList");
+            if (inList) return;
             e.preventDefault();
             onEnterSubmit();
             return;
