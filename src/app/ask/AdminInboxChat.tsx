@@ -244,8 +244,21 @@ export default function AdminInboxChat({
     const toDeleteIds = matching.filter((q) => !q.question && !(q.attachments && q.attachments.length > 0)).map((q) => q.id);
     const toClearIds = matching.filter((q) => q.question || (q.attachments && q.attachments.length > 0)).map((q) => q.id);
     const supabase = createClient();
-    if (toDeleteIds.length) await supabase.from("questions").delete().in("id", toDeleteIds);
-    if (toClearIds.length) await supabase.from("questions").update({ answer: null, answered_at: null }).in("id", toClearIds);
+    if (toDeleteIds.length) {
+      const { error: err } = await supabase.from("questions").delete().in("id", toDeleteIds);
+      if (err) {
+        setError("답변을 삭제하지 못했어요: " + err.message);
+        return;
+      }
+    }
+    if (toClearIds.length) {
+      const { error: err } = await supabase.from("questions").update({ answer: null, answered_at: null }).in("id", toClearIds);
+      if (err) {
+        setError("답변을 삭제하지 못했어요: " + err.message);
+        return;
+      }
+    }
+    setError("");
     setQuestions((prev) =>
       prev
         .filter((q) => !toDeleteIds.includes(q.id))
@@ -266,20 +279,17 @@ export default function AdminInboxChat({
     setError("");
     const supabase = createClient();
     const now = new Date().toISOString();
-    if (active.pending > 0) {
-      const { error: err } = await supabase
-        .from("questions")
-        .update({ answer: text, answered_at: now })
-        .eq("user_id", activeId)
-        .is("answer", null);
+    // 대기 중인 질문이 여러 건이어도 한 번에 다 같은 답변으로 덮지 않는다 — 가장 먼저 들어온
+    // 질문 하나에만 이번 답변을 단다.
+    const target = active.items.find((q) => !q.answer);
+    if (target) {
+      const { error: err } = await supabase.from("questions").update({ answer: text, answered_at: now }).eq("id", target.id);
       setBusy(false);
       if (err) {
         setError("답변을 보내지 못했어요: " + err.message);
         return;
       }
-      setQuestions((prev) =>
-        prev.map((q) => (q.user_id === activeId && !q.answer ? { ...q, answer: text, answered_at: now } : q))
-      );
+      setQuestions((prev) => prev.map((q) => (q.id === target.id ? { ...q, answer: text, answered_at: now } : q)));
     } else {
       // 대기 중인 질문이 없어도 채팅처럼 먼저 메시지를 보낼 수 있다 (질문 칸이 빈 행으로 저장)
       const { data, error: err } = await supabase
@@ -533,9 +543,11 @@ export default function AdminInboxChat({
             <div className="border-t border-black/10 px-5 py-3">
               <div className="flex flex-col gap-2">
                 <p className="text-[11px] text-[#9A9A9A]">
-                  {active.pending > 0
-                    ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 대기 중인 질문 ${active.pending}건에 함께 전달돼요.`
-                    : "대기 중인 질문이 없어도 언제든 메시지를 보낼 수 있어요."}
+                  {active.pending > 1
+                    ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 가장 먼저 들어온 질문 1건에만 전달돼요. (나머지 ${active.pending - 1}건은 따로 답변해야 해요.)`
+                    : active.pending === 1
+                      ? `보내는 답변은 ${activeProfile?.name || "이 분"}의 대기 중인 질문에 전달돼요.`
+                      : "대기 중인 질문이 없어도 언제든 메시지를 보낼 수 있어요."}
                 </p>
                 <FormatToolbar editableRef={replyEditableRef} />
                 <div className="flex gap-2 items-end">
