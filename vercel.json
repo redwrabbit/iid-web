@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-coffee-chats",
+      "schedule": "0 20 * * *"
+    }
+  ]
+}

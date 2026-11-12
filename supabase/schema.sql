@@ -246,3 +246,6 @@ create policy "admin writes coffee chats" on public.coffee_chats
   for all to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com')
   with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 메일 자동 동기화가 같은 예약을 email로 찾아 갱신하므로 조회 성능용 인덱스를 둔다.
+create index if not exists coffee_chats_email_idx on public.coffee_chats(email);
