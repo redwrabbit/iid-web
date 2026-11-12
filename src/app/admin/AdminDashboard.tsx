@@ -35,6 +35,27 @@ function fmt(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+const TAB_GROUPS = [
+  {
+    key: "dashboard",
+    label: "현황판",
+    tabs: [
+      { k: "analytics", label: "질문 분석", Icon: BarChart3 },
+      { k: "members", label: "회원", Icon: Users },
+      { k: "coffeechats", label: "커피챗", Icon: Coffee },
+      { k: "logs", label: "검색 로그", Icon: History },
+    ],
+  },
+  {
+    key: "content",
+    label: "콘텐츠 관리",
+    tabs: [
+      { k: "resources", label: "자료 관리", Icon: FileUp },
+      { k: "site", label: "사이트 콘텐츠", Icon: FileText },
+    ],
+  },
+] as const;
+
 const STOP = new Set(["이드", "뭐", "어떻게", "어떤", "왜", "하나요", "있나요", "인가요", "무엇", "대해", "관련"]);
 function keywordCounts(texts: string[]) {
   const counts = new Map<string, number>();
@@ -66,6 +87,12 @@ export default function AdminDashboard({
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const [coffeeChats, setCoffeeChats] = useState(initialCoffeeChats);
+
+  const activeGroup = TAB_GROUPS.find((g) => g.tabs.some((t) => t.k === tab))?.key ?? TAB_GROUPS[0].key;
+  function selectGroup(groupKey: (typeof TAB_GROUPS)[number]["key"]) {
+    const group = TAB_GROUPS.find((g) => g.key === groupKey);
+    if (group && !group.tabs.some((t) => t.k === tab)) setTab(group.tabs[0].k as typeof tab);
+  }
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const pendingCount = questions.filter((q) => !q.answer).length;
@@ -106,26 +133,36 @@ export default function AdminDashboard({
         ))}
       </div>
 
-      <div className="flex gap-1 mb-5 border-b border-black/10">
-        {[
-          { k: "analytics", label: "질문 분석", Icon: BarChart3 },
-          { k: "resources", label: "자료 관리", Icon: FileUp },
-          { k: "site", label: "사이트 콘텐츠", Icon: FileText },
-          { k: "members", label: "회원", Icon: Users },
-          { k: "coffeechats", label: "커피챗", Icon: Coffee },
-          { k: "logs", label: "검색 로그", Icon: History },
-        ].map((t) => (
-          <button
-            key={t.k}
-            onClick={() => setTab(t.k as typeof tab)}
-            className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-t-lg border border-b-0 ${
-              tab === t.k ? "bg-[#FAFAF9] border-black/10 text-[#FF4103]" : "bg-transparent border-transparent text-[#9A9A9A]"
-            }`}
-          >
-            <t.Icon className="w-4 h-4" strokeWidth={2.25} />
-            {t.label}
-          </button>
-        ))}
+      <div className="flex flex-col gap-2.5 mb-5">
+        <div className="flex gap-1.5">
+          {TAB_GROUPS.map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => selectGroup(g.key)}
+              className={`text-sm font-semibold px-4 py-2 rounded-full ${
+                activeGroup === g.key ? "bg-[#111111] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
+              }`}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {TAB_GROUPS.find((g) => g.key === activeGroup)!.tabs.map((t) => (
+            <button
+              key={t.k}
+              type="button"
+              onClick={() => setTab(t.k as typeof tab)}
+              className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-full ${
+                tab === t.k ? "bg-[#FF4103] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
+              }`}
+            >
+              <t.Icon className="w-4 h-4" strokeWidth={2.25} />
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === "analytics" && (
