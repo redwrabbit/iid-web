@@ -19,7 +19,7 @@ export default async function AdminPage() {
     supabase.from("resources").select("id, title, url, category, subcategory, content, summary, created_at").order("created_at", { ascending: false }),
     supabase
       .from("coffee_chats")
-      .select("id, name, email, phone, company, preferred_format, scheduled_at, requested_at, status, notes, memo, created_at")
+      .select("id, name, email, phone, company, preferred_format, scheduled_at, requested_at, status, notes, memo, confirmed, created_at")
       .order("requested_at", { ascending: false }),
   ]);
 

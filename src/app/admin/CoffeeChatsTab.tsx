@@ -18,6 +18,7 @@ export type CoffeeChat = {
   status: CoffeeChatStatus;
   notes: string;
   memo: string;
+  confirmed: boolean;
   created_at: string;
 };
 
@@ -83,10 +84,18 @@ function csvCell(v: string | null) {
   return `"${/^[=+\-@]/.test(t) ? "'" + t : t}"`;
 }
 
-type Filters = { name: string; email: string; phone: string; company: string; format: string; status: "all" | "upcoming" | "completed" | "cancelled" };
-const EMPTY_FILTERS: Filters = { name: "", email: "", phone: "", company: "", format: "", status: "all" };
+type Filters = {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  format: string;
+  status: "all" | "upcoming" | "completed" | "cancelled";
+  confirmed: "all" | "yes" | "no";
+};
+const EMPTY_FILTERS: Filters = { name: "", email: "", phone: "", company: "", format: "", status: "all", confirmed: "all" };
 
-type SortKey = "name" | "email" | "phone" | "company" | "format" | "scheduled" | "status";
+type SortKey = "name" | "email" | "phone" | "company" | "format" | "scheduled" | "status" | "confirmed";
 type Sort = { key: SortKey; dir: "asc" | "desc" };
 
 const TH = "text-left text-[11px] font-semibold text-[#9A9A9A] px-2.5 pt-2.5 pb-1.5 whitespace-nowrap";
@@ -161,6 +170,16 @@ export default function CoffeeChatsTab({
     onUpdate(data as CoffeeChat);
   }
 
+  async function updateConfirmed(c: CoffeeChat, confirmed: boolean) {
+    const supabase = createClient();
+    const { data, error: err } = await supabase.from("coffee_chats").update({ confirmed }).eq("id", c.id).select().single();
+    if (err || !data) {
+      alert("확인 상태를 바꾸지 못했어요: " + (err?.message || "알 수 없는 오류"));
+      return;
+    }
+    onUpdate(data as CoffeeChat);
+  }
+
   async function remove(id: string) {
     if (!confirm("이 커피챗 기록을 삭제할까요?")) return;
     const supabase = createClient();
@@ -182,6 +201,8 @@ export default function CoffeeChatsTab({
       if (filters.status === "upcoming" && c.status !== "booked") return false;
       if (filters.status === "completed" && c.status !== "completed") return false;
       if (filters.status === "cancelled" && c.status !== "cancelled" && c.status !== "declined") return false;
+      if (filters.confirmed === "yes" && !c.confirmed) return false;
+      if (filters.confirmed === "no" && c.confirmed) return false;
       if (selectedDate && isoToLocalInput(c.scheduled_at, false) !== selectedDate) return false;
       return true;
     });
@@ -205,13 +226,15 @@ export default function CoffeeChatsTab({
           return (a.scheduled_at || "").localeCompare(b.scheduled_at || "") * dirMul;
         case "status":
           return a.status.localeCompare(b.status) * dirMul;
+        case "confirmed":
+          return (Number(a.confirmed) - Number(b.confirmed)) * dirMul;
       }
     });
   }, [coffeeChats, filters, selectedDate, sort]);
 
   function exportCsv() {
     const rows = [
-      ["이름", "이메일", "전화", "소속", "희망 방식", "신청일자", "예정 일시", "상태", "비고", "메모"],
+      ["이름", "이메일", "전화", "소속", "희망 방식", "신청일자", "예정 일시", "상태", "확인", "비고", "메모"],
       ...list.map((c) => [
         c.name,
         c.email,
@@ -221,6 +244,7 @@ export default function CoffeeChatsTab({
         c.requested_at ? c.requested_at.slice(0, 10) : "",
         c.scheduled_at ? fmtDateTime(c.scheduled_at) : "",
         STATUS_DISPLAY[c.status].label,
+        c.confirmed ? "확인됨" : "",
         c.notes,
         c.memo,
       ]),
@@ -325,6 +349,7 @@ export default function CoffeeChatsTab({
                 <col className="w-[82px]" />
                 <col className="w-[56px]" />
                 <col className="w-[86px]" />
+                <col className="w-[60px]" />
                 <col className="w-[122px]" />
               </colgroup>
               <thead>
@@ -337,6 +362,7 @@ export default function CoffeeChatsTab({
                   <SortTh label="예정일자" sortKey="scheduled" sort={sort} onToggle={toggleSort} />
                   <SortTh label="예정시간" sortKey="scheduled" sort={sort} onToggle={toggleSort} />
                   <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="확인" sortKey="confirmed" sort={sort} onToggle={toggleSort} />
                   <th className={th}>관리</th>
                 </tr>
                 <tr className="border-b border-black/8 bg-[#FAFAF9]">
@@ -370,21 +396,36 @@ export default function CoffeeChatsTab({
                       <option value="cancelled">취소/거절</option>
                     </select>
                   </th>
+                  <th className="px-2.5 pb-2">
+                    <select
+                      value={filters.confirmed}
+                      onChange={(e) => setFilter("confirmed", e.target.value as Filters["confirmed"])}
+                      className={FILTER_INPUT}
+                      aria-label="확인 필터"
+                    >
+                      <option value="all">전체</option>
+                      <option value="yes">확인됨</option>
+                      <option value="no">미확인</option>
+                    </select>
+                  </th>
                   <th className="px-2.5 pb-2" />
                 </tr>
               </thead>
               <tbody>
                 {list.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-2.5 py-6 text-center text-sm text-[#9A9A9A]">
+                    <td colSpan={10} className="px-2.5 py-6 text-center text-sm text-[#9A9A9A]">
                       검색 결과가 없어요.
                     </td>
                   </tr>
                 )}
                 {list.map((c) => (
                   <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
-                    <td className={`${td} font-bold text-[#111111] truncate`} title={c.name}>
-                      {c.name || "-"}
+                    <td className={`${td} whitespace-nowrap overflow-hidden`} title={c.name}>
+                      <span className="inline-flex items-center gap-1 max-w-full">
+                        <span className="truncate font-bold text-[#111111]">{c.name || "-"}</span>
+                        {c.confirmed && <Check className="w-3 h-3 text-[#FF4103] shrink-0" strokeWidth={3} />}
+                      </span>
                     </td>
                     <td className={`${td} truncate`} title={c.email}>
                       {c.email ? (
@@ -418,6 +459,18 @@ export default function CoffeeChatsTab({
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className={td}>
+                      <button
+                        type="button"
+                        onClick={() => updateConfirmed(c, !c.confirmed)}
+                        aria-label="확인"
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                          c.confirmed ? "bg-[#FF4103] border-[#FF4103]" : "border-black/20 hover:border-[#FF4103]"
+                        }`}
+                      >
+                        {c.confirmed && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                      </button>
                     </td>
                     <td className={td}>
                       <div className="flex items-center gap-0.5">
