@@ -21,7 +21,7 @@ export type CoffeeChat = {
 };
 
 const FILTER_INPUT =
-  "w-full border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
+  "w-24 border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
 
 const FORM_INPUT =
   "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103] w-full";
@@ -60,6 +60,17 @@ function isoToLocalInput(iso: string | null, withTime: boolean) {
   const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
   const date = `${get("year")}-${get("month")}-${get("day")}`;
   return withTime ? `${date}T${get("hour")}:${get("minute")}` : date;
+}
+function isoToTimeOnly(iso: string | null): string {
+  if (!iso) return "-";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
+  return `${get("hour")}:${get("minute")}`;
 }
 function localInputToIso(v: string, withTime: boolean): string | null {
   if (!v) return null;
@@ -228,7 +239,7 @@ export default function CoffeeChatsTab({
           <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
         ) : (
           <div className="overflow-x-auto border border-black/8 rounded-xl">
-            <table className="w-full border-collapse">
+            <table className="border-collapse">
               <thead>
                 <tr className="border-b border-black/8">
                   <th className={th}>이름</th>
@@ -236,7 +247,8 @@ export default function CoffeeChatsTab({
                   <th className={th}>전화</th>
                   <th className={th}>소속</th>
                   <th className={th}>희망 방식</th>
-                  <th className={th}>예정 일시</th>
+                  <th className={th}>예정일자</th>
+                  <th className={th}>예정시간</th>
                   <th className={th}>상태</th>
                   <th className={th}>관리</th>
                 </tr>
@@ -257,6 +269,7 @@ export default function CoffeeChatsTab({
                     <input value={filters.format} onChange={(e) => setFilter("format", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
                   </th>
                   <th className="px-2.5 pb-2" />
+                  <th className="px-2.5 pb-2" />
                   <th className="px-2.5 pb-2">
                     <select
                       value={filters.status}
@@ -276,17 +289,15 @@ export default function CoffeeChatsTab({
               <tbody>
                 {list.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-2.5 py-6 text-center text-sm text-[#9A9A9A]">
+                    <td colSpan={9} className="px-2.5 py-6 text-center text-sm text-[#9A9A9A]">
                       검색 결과가 없어요.
                     </td>
                   </tr>
                 )}
                 {list.map((c) => (
                   <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
-                    <td className={`${td} font-bold text-[#111111] max-w-[72px] truncate`} title={c.name}>
-                      {c.name || "-"}
-                    </td>
-                    <td className={td}>
+                    <td className={`${td} font-bold text-[#111111] whitespace-nowrap`}>{c.name || "-"}</td>
+                    <td className={`${td} whitespace-nowrap`}>
                       {c.email ? (
                         <a href={`mailto:${c.email}`} className="hover:text-[#FF4103] hover:underline">
                           {c.email}
@@ -296,9 +307,10 @@ export default function CoffeeChatsTab({
                       )}
                     </td>
                     <td className={`${td} whitespace-nowrap`}>{c.phone || "-"}</td>
-                    <td className={td}>{c.company || "-"}</td>
-                    <td className={td}>{c.preferred_format || "-"}</td>
+                    <td className={`${td} whitespace-nowrap`}>{c.company || "-"}</td>
+                    <td className={`${td} whitespace-nowrap`}>{c.preferred_format || "-"}</td>
                     <td className={`${td} whitespace-nowrap`}>{isoToLocalInput(c.scheduled_at, false) || "-"}</td>
+                    <td className={`${td} whitespace-nowrap`}>{isoToTimeOnly(c.scheduled_at)}</td>
                     <td className={td}>
                       <select
                         value={c.status}
