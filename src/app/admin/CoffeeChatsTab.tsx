@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type CoffeeChatStatus = "booked" | "cancelled" | "declined" | "completed";
@@ -17,11 +17,12 @@ export type CoffeeChat = {
   requested_at: string | null;
   status: CoffeeChatStatus;
   notes: string;
+  memo: string;
   created_at: string;
 };
 
 const FILTER_INPUT =
-  "w-24 border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
+  "w-full min-w-0 border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
 
 const FORM_INPUT =
   "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103] w-full";
@@ -85,6 +86,31 @@ function csvCell(v: string | null) {
 type Filters = { name: string; email: string; phone: string; company: string; format: string; status: "all" | "upcoming" | "completed" | "cancelled" };
 const EMPTY_FILTERS: Filters = { name: "", email: "", phone: "", company: "", format: "", status: "all" };
 
+type SortKey = "name" | "email" | "phone" | "company" | "format" | "scheduled" | "status";
+type Sort = { key: SortKey; dir: "asc" | "desc" };
+
+const TH = "text-left text-[11px] font-semibold text-[#9A9A9A] px-2.5 pt-2.5 pb-1.5 whitespace-nowrap";
+
+function SortTh({ label, sortKey, sort, onToggle }: { label: string; sortKey: SortKey; sort: Sort | null; onToggle: (key: SortKey) => void }) {
+  const active = sort?.key === sortKey;
+  return (
+    <th className={TH}>
+      <button type="button" onClick={() => onToggle(sortKey)} className="inline-flex items-center gap-0.5 hover:text-[#FF4103]">
+        {label}
+        {active ? (
+          sort!.dir === "asc" ? (
+            <ChevronUp className="w-3 h-3" strokeWidth={2.5} />
+          ) : (
+            <ChevronDown className="w-3 h-3" strokeWidth={2.5} />
+          )
+        ) : (
+          <ChevronDown className="w-3 h-3 opacity-0" strokeWidth={2.5} />
+        )}
+      </button>
+    </th>
+  );
+}
+
 export default function CoffeeChatsTab({
   coffeeChats,
   onAdd,
@@ -98,12 +124,18 @@ export default function CoffeeChatsTab({
 }) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [sort, setSort] = useState<Sort | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<CoffeeChat | null>(null);
   const [memoFor, setMemoFor] = useState<CoffeeChat | null>(null);
+  const [notesFor, setNotesFor] = useState<CoffeeChat | null>(null);
 
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) => (prev?.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
   }
 
   async function updateStatus(c: CoffeeChat, status: CoffeeChatStatus) {
@@ -145,12 +177,33 @@ export default function CoffeeChatsTab({
       if (selectedDate && isoToLocalInput(c.scheduled_at, false) !== selectedDate) return false;
       return true;
     });
-    return rows.sort((a, b) => (b.requested_at || b.created_at).localeCompare(a.requested_at || a.created_at));
-  }, [coffeeChats, filters, selectedDate]);
+    if (!sort) {
+      return rows.sort((a, b) => (b.requested_at || b.created_at).localeCompare(a.requested_at || a.created_at));
+    }
+    const dirMul = sort.dir === "asc" ? 1 : -1;
+    return rows.sort((a, b) => {
+      switch (sort.key) {
+        case "name":
+          return a.name.localeCompare(b.name) * dirMul;
+        case "email":
+          return a.email.localeCompare(b.email) * dirMul;
+        case "phone":
+          return a.phone.localeCompare(b.phone) * dirMul;
+        case "company":
+          return a.company.localeCompare(b.company) * dirMul;
+        case "format":
+          return a.preferred_format.localeCompare(b.preferred_format) * dirMul;
+        case "scheduled":
+          return (a.scheduled_at || "").localeCompare(b.scheduled_at || "") * dirMul;
+        case "status":
+          return a.status.localeCompare(b.status) * dirMul;
+      }
+    });
+  }, [coffeeChats, filters, selectedDate, sort]);
 
   function exportCsv() {
     const rows = [
-      ["이름", "이메일", "전화", "소속", "희망 방식", "신청일자", "예정 일시", "상태", "비고"],
+      ["이름", "이메일", "전화", "소속", "희망 방식", "신청일자", "예정 일시", "상태", "비고", "메모"],
       ...list.map((c) => [
         c.name,
         c.email,
@@ -161,6 +214,7 @@ export default function CoffeeChatsTab({
         c.scheduled_at ? fmtDateTime(c.scheduled_at) : "",
         STATUS_DISPLAY[c.status].label,
         c.notes,
+        c.memo,
       ]),
     ];
     const csv = "﻿" + rows.map((r) => r.map(csvCell).join(",")).join("\n");
@@ -210,7 +264,10 @@ export default function CoffeeChatsTab({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setFilters(EMPTY_FILTERS)}
+              onClick={() => {
+                setFilters(EMPTY_FILTERS);
+                setSort(null);
+              }}
               className="text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] px-2 py-1"
             >
               필터 초기화
@@ -239,17 +296,28 @@ export default function CoffeeChatsTab({
           <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
         ) : (
           <div className="overflow-x-auto border border-black/8 rounded-xl">
-            <table className="border-collapse">
+            <table className="border-collapse table-fixed">
+              <colgroup>
+                <col className="w-[88px]" />
+                <col className="w-[200px]" />
+                <col className="w-[108px]" />
+                <col className="w-[130px]" />
+                <col className="w-[84px]" />
+                <col className="w-[92px]" />
+                <col className="w-[64px]" />
+                <col className="w-[88px]" />
+                <col className="w-[130px]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-black/8">
-                  <th className={th}>이름</th>
-                  <th className={th}>이메일</th>
-                  <th className={th}>전화</th>
-                  <th className={th}>소속</th>
-                  <th className={th}>희망 방식</th>
-                  <th className={th}>예정일자</th>
-                  <th className={th}>예정시간</th>
-                  <th className={th}>상태</th>
+                  <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="이메일" sortKey="email" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="전화" sortKey="phone" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="소속" sortKey="company" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="희망 방식" sortKey="format" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="예정일자" sortKey="scheduled" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="예정시간" sortKey="scheduled" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
                   <th className={th}>관리</th>
                 </tr>
                 <tr className="border-b border-black/8 bg-[#FAFAF9]">
@@ -296,8 +364,10 @@ export default function CoffeeChatsTab({
                 )}
                 {list.map((c) => (
                   <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
-                    <td className={`${td} font-bold text-[#111111] whitespace-nowrap`}>{c.name || "-"}</td>
-                    <td className={`${td} whitespace-nowrap`}>
+                    <td className={`${td} font-bold text-[#111111] truncate`} title={c.name}>
+                      {c.name || "-"}
+                    </td>
+                    <td className={`${td} truncate`} title={c.email}>
                       {c.email ? (
                         <a href={`mailto:${c.email}`} className="hover:text-[#FF4103] hover:underline">
                           {c.email}
@@ -306,16 +376,22 @@ export default function CoffeeChatsTab({
                         "-"
                       )}
                     </td>
-                    <td className={`${td} whitespace-nowrap`}>{c.phone || "-"}</td>
-                    <td className={`${td} whitespace-nowrap`}>{c.company || "-"}</td>
-                    <td className={`${td} whitespace-nowrap`}>{c.preferred_format || "-"}</td>
+                    <td className={`${td} truncate`} title={c.phone}>
+                      {c.phone || "-"}
+                    </td>
+                    <td className={`${td} truncate`} title={c.company}>
+                      {c.company || "-"}
+                    </td>
+                    <td className={`${td} truncate`} title={c.preferred_format}>
+                      {c.preferred_format || "-"}
+                    </td>
                     <td className={`${td} whitespace-nowrap`}>{isoToLocalInput(c.scheduled_at, false) || "-"}</td>
                     <td className={`${td} whitespace-nowrap`}>{isoToTimeOnly(c.scheduled_at)}</td>
                     <td className={td}>
                       <select
                         value={c.status}
                         onChange={(e) => updateStatus(c, e.target.value as CoffeeChatStatus)}
-                        className={`text-[10.5px] font-semibold rounded-full pl-2 pr-1 py-0.5 border-0 focus:outline-none focus:ring-2 focus:ring-[#FF4103] ${STATUS_DISPLAY[c.status].cls}`}
+                        className={`w-full text-[10.5px] font-semibold rounded-full pl-2 pr-1 py-0.5 border-0 focus:outline-none focus:ring-2 focus:ring-[#FF4103] ${STATUS_DISPLAY[c.status].cls}`}
                       >
                         {STATUS_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>
@@ -324,13 +400,21 @@ export default function CoffeeChatsTab({
                         ))}
                       </select>
                     </td>
-                    <td className={`${td} whitespace-nowrap`}>
+                    <td className={td}>
                       <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setNotesFor(c)}
+                          aria-label="비고"
+                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.notes ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
+                        >
+                          <FileText className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => setMemoFor(c)}
                           aria-label="메모"
-                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.notes ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
+                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.memo ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
                         >
                           <StickyNote className="w-3.5 h-3.5" strokeWidth={2} />
                         </button>
@@ -360,7 +444,7 @@ export default function CoffeeChatsTab({
         )}
       </div>
 
-      <div className="w-full lg:w-72 shrink-0">
+      <div className="w-full lg:w-[400px] shrink-0">
         <CoffeeChatCalendar coffeeChats={coffeeChats} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
       </div>
 
@@ -378,10 +462,28 @@ export default function CoffeeChatsTab({
         />
       )}
 
+      {notesFor && (
+        <QuickNoteDialog
+          key={`notes-${notesFor.id}`}
+          coffeeChat={notesFor}
+          field="notes"
+          title="비고"
+          placeholder="신청 시 비고를 입력하세요"
+          onClose={() => setNotesFor(null)}
+          onSaved={(c) => {
+            onUpdate(c);
+            setNotesFor(null);
+          }}
+        />
+      )}
+
       {memoFor && (
-        <MemoDialog
-          key={memoFor.id}
+        <QuickNoteDialog
+          key={`memo-${memoFor.id}`}
           coffeeChat={memoFor}
+          field="memo"
+          title="메모"
+          placeholder="메모를 입력하세요"
           onClose={() => setMemoFor(null)}
           onSaved={(c) => {
             onUpdate(c);
@@ -404,12 +506,14 @@ function CoffeeChatCalendar({
 }) {
   const [viewDate, setViewDate] = useState(() => (selectedDate ? new Date(selectedDate) : new Date()));
 
-  const countsByDate = useMemo(() => {
-    const m = new Map<string, number>();
+  const eventsByDate = useMemo(() => {
+    const m = new Map<string, CoffeeChat[]>();
     for (const c of coffeeChats) {
       const key = isoToLocalInput(c.scheduled_at, false);
       if (!key) continue;
-      m.set(key, (m.get(key) || 0) + 1);
+      const arr = m.get(key);
+      if (arr) arr.push(c);
+      else m.set(key, [c]);
     }
     return m;
   }, [coffeeChats]);
@@ -428,60 +532,70 @@ function CoffeeChatCalendar({
   }
 
   return (
-    <div className="border border-black/8 rounded-xl p-3">
-      <div className="flex items-center justify-between mb-2">
+    <div className="border border-black/8 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
         <button
           type="button"
           onClick={() => setViewDate(new Date(year, month - 1, 1))}
           aria-label="이전 달"
-          className="p-1 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
         >
-          <ChevronLeft className="w-4 h-4" strokeWidth={2.25} />
+          <ChevronLeft className="w-5 h-5" strokeWidth={2.25} />
         </button>
-        <span className="text-sm font-bold text-[#111111]">
+        <span className="text-base font-bold text-[#111111]">
           {year}년 {month + 1}월
         </span>
         <button
           type="button"
           onClick={() => setViewDate(new Date(year, month + 1, 1))}
           aria-label="다음 달"
-          className="p-1 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
         >
-          <ChevronRight className="w-4 h-4" strokeWidth={2.25} />
+          <ChevronRight className="w-5 h-5" strokeWidth={2.25} />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[#9A9A9A] mb-1">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-xs text-[#9A9A9A] mb-1.5">
         {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
           <div key={d}>{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((d, i) => {
           if (d === null) return <div key={`blank-${i}`} />;
           const key = dateKey(d);
-          const count = countsByDate.get(key) || 0;
+          const events = eventsByDate.get(key) || [];
           const isSelected = selectedDate === key;
           return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onSelectDate(isSelected ? null : key)}
-              className={`aspect-square rounded-lg text-xs flex flex-col items-center justify-center gap-0.5 ${
-                isSelected
-                  ? "bg-[#FF4103] text-white"
-                  : count > 0
-                    ? "bg-[rgba(255,65,3,0.08)] text-[#111111] hover:bg-[rgba(255,65,3,0.15)]"
-                    : "text-[#9A9A9A] hover:bg-[#F4F4F2]"
-              }`}
-            >
-              <span>{d}</span>
-              {count > 0 && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-[#FF4103]"}`} />}
-            </button>
+            <div key={key} className="group relative">
+              <button
+                type="button"
+                onClick={() => onSelectDate(isSelected ? null : key)}
+                className={`w-full aspect-square rounded-lg text-sm flex flex-col items-center justify-center gap-0.5 ${
+                  isSelected
+                    ? "bg-[#FF4103] text-white"
+                    : events.length > 0
+                      ? "bg-[rgba(255,65,3,0.08)] text-[#111111] hover:bg-[rgba(255,65,3,0.15)]"
+                      : "text-[#9A9A9A] hover:bg-[#F4F4F2]"
+                }`}
+              >
+                <span>{d}</span>
+                {events.length > 0 && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-[#FF4103]"}`} />}
+              </button>
+              {events.length > 0 && (
+                <div className="hidden group-hover:block absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-[#111111] text-white text-[11px] rounded-lg px-3 py-2 shadow-lg whitespace-nowrap pointer-events-none">
+                  {events.map((e) => (
+                    <div key={e.id}>
+                      {e.name || "-"} · {e.company || "-"} · {isoToTimeOnly(e.scheduled_at)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
       {selectedDate && (
-        <button type="button" onClick={() => onSelectDate(null)} className="mt-2 text-xs text-[#9A9A9A] hover:text-[#FF4103] w-full text-center">
+        <button type="button" onClick={() => onSelectDate(null)} className="mt-3 text-xs text-[#9A9A9A] hover:text-[#FF4103] w-full text-center">
           선택 해제 · 전체 보기
         </button>
       )}
@@ -625,6 +739,7 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
   const [scheduledAt, setScheduledAt] = useState(isoToLocalInput(coffeeChat.scheduled_at, true));
   const [status, setStatus] = useState(coffeeChat.status);
   const [notes, setNotes] = useState(coffeeChat.notes);
+  const [memo, setMemo] = useState(coffeeChat.memo);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -648,6 +763,7 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
         scheduled_at: localInputToIso(scheduledAt, true),
         status,
         notes: notes.trim(),
+        memo: memo.trim(),
       })
       .eq("id", coffeeChat.id)
       .select()
@@ -691,7 +807,14 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
             </option>
           ))}
         </select>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="비고" className={`${FORM_INPUT} resize-none`} />
+        <label className="text-xs text-[#9A9A9A] flex flex-col gap-1">
+          비고 (신청 시 내용)
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="비고" className={`${FORM_INPUT} resize-none`} />
+        </label>
+        <label className="text-xs text-[#9A9A9A] flex flex-col gap-1">
+          메모 (관리자 메모)
+          <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={2} placeholder="메모" className={`${FORM_INPUT} resize-none`} />
+        </label>
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="text-sm font-semibold text-[#9A9A9A] px-3 py-2">
@@ -711,8 +834,22 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
   );
 }
 
-function MemoDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; onClose: () => void; onSaved: (c: CoffeeChat) => void }) {
-  const [notes, setNotes] = useState(coffeeChat.notes);
+function QuickNoteDialog({
+  coffeeChat,
+  field,
+  title,
+  placeholder,
+  onClose,
+  onSaved,
+}: {
+  coffeeChat: CoffeeChat;
+  field: "notes" | "memo";
+  title: string;
+  placeholder: string;
+  onClose: () => void;
+  onSaved: (c: CoffeeChat) => void;
+}) {
+  const [value, setValue] = useState(coffeeChat[field]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -720,7 +857,12 @@ function MemoDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
     setBusy(true);
     setError("");
     const supabase = createClient();
-    const { data, error: err } = await supabase.from("coffee_chats").update({ notes: notes.trim() }).eq("id", coffeeChat.id).select().single();
+    const { data, error: err } = await supabase
+      .from("coffee_chats")
+      .update({ [field]: value.trim() })
+      .eq("id", coffeeChat.id)
+      .select()
+      .single();
     setBusy(false);
     if (err || !data) {
       setError("저장하지 못했어요: " + (err?.message || "알 수 없는 오류"));
@@ -733,16 +875,18 @@ function MemoDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-xl p-5 w-full max-w-sm flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-[#111111]">{coffeeChat.name} · 메모</p>
+          <p className="text-sm font-bold text-[#111111]">
+            {coffeeChat.name} · {title}
+          </p>
           <button type="button" onClick={onClose} aria-label="닫기" className="p-1 text-[#9A9A9A] hover:text-[#111111]">
             <X className="w-4 h-4" strokeWidth={2.25} />
           </button>
         </div>
         <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
           rows={5}
-          placeholder="메모를 입력하세요"
+          placeholder={placeholder}
           autoFocus
           className={`${FORM_INPUT} resize-none`}
         />

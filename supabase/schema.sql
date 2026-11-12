@@ -249,3 +249,6 @@ create policy "admin writes coffee chats" on public.coffee_chats
 
 -- 메일 자동 동기화가 같은 예약을 email로 찾아 갱신하므로 조회 성능용 인덱스를 둔다.
 create index if not exists coffee_chats_email_idx on public.coffee_chats(email);
+
+-- notes(비고)는 신청 시점 내용, memo는 관리자가 미팅 후 따로 남기는 메모로 분리한다.
+alter table public.coffee_chats add column if not exists memo text not null default '';
