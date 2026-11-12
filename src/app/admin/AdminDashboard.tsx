@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Coffee, FileText, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
+import { BarChart3, Coffee, FileText, Users, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { RESOURCE_CATEGORIES } from "@/lib/resource-fields";
 import { SUBCATEGORY_LIST } from "@/lib/search";
@@ -18,7 +18,6 @@ type Question = {
   answered_at: string | null;
   created_at: string;
 };
-type SearchLog = { id: string; user_id: string; query: string; created_at: string };
 type Profile = { id: string; email: string; name: string; company: string | null; role: string | null; created_at: string };
 type Resource = {
   id: string;
@@ -40,10 +39,9 @@ const TAB_GROUPS = [
     key: "dashboard",
     label: "현황판",
     tabs: [
-      { k: "analytics", label: "질문 분석", Icon: BarChart3 },
+      { k: "qa", label: "질문답변", Icon: BarChart3 },
       { k: "members", label: "회원", Icon: Users },
       { k: "coffeechats", label: "커피챗", Icon: Coffee },
-      { k: "logs", label: "검색 로그", Icon: History },
     ],
   },
   {
@@ -56,34 +54,20 @@ const TAB_GROUPS = [
   },
 ] as const;
 
-const STOP = new Set(["이드", "뭐", "어떻게", "어떤", "왜", "하나요", "있나요", "인가요", "무엇", "대해", "관련"]);
-function keywordCounts(texts: string[]) {
-  const counts = new Map<string, number>();
-  for (const t of texts) {
-    const words = (t.match(/[가-힣a-zA-Z0-9]+/g) || []).filter((w) => w.length >= 2 && !STOP.has(w));
-    for (const w of words) counts.set(w, (counts.get(w) || 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
-}
-
 export default function AdminDashboard({
   initialQuestions,
-  initialSearchLogs,
   profiles,
   initialResources,
   initialCoffeeChats,
   siteContent,
 }: {
   initialQuestions: Question[];
-  initialSearchLogs: SearchLog[];
   profiles: Profile[];
   initialResources: Resource[];
   initialCoffeeChats: CoffeeChat[];
   siteContent: Partial<Record<SectionKey, unknown>>;
 }) {
-  const [tab, setTab] = useState<"analytics" | "resources" | "site" | "members" | "coffeechats" | "logs">("analytics");
+  const [tab, setTab] = useState<"qa" | "resources" | "site" | "members" | "coffeechats">("qa");
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const [coffeeChats, setCoffeeChats] = useState(initialCoffeeChats);
@@ -93,38 +77,20 @@ export default function AdminDashboard({
     const group = TAB_GROUPS.find((g) => g.key === groupKey);
     if (group && !group.tabs.some((t) => t.k === tab)) setTab(group.tabs[0].k as typeof tab);
   }
-  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const pendingCount = questions.filter((q) => !q.answer).length;
   const [now] = useState(() => Date.now());
   const recentJoined = profiles.filter((p) => now - new Date(p.created_at).getTime() < 7 * 86400000).length;
 
-  const topKeywords = useMemo(
-    () => keywordCounts([...initialSearchLogs.map((l) => l.query), ...questions.map((q) => q.question)]),
-    [initialSearchLogs, questions]
-  );
-
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-6 flex-1">
-      <h1 className="text-xl font-bold mb-2 text-[#111111]">관리자 페이지</h1>
+    <div className="w-full px-4 sm:px-6 py-6 flex-1">
+      <h1 className="text-xl font-bold mb-5 text-[#111111]">관리자 페이지</h1>
 
-      <Link
-        href="/ask"
-        className="flex items-center justify-between gap-3 mb-5 bg-[rgba(255,65,3,0.06)] border border-[rgba(255,65,3,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(255,65,3,0.1)]"
-      >
-        <span className="text-sm font-semibold text-[#111111]">
-          질문함은 이드에게 질문하기 탭에서 확인·답변해요
-          {pendingCount > 0 && <span className="ml-2 text-[11px] font-bold text-white bg-[#FF4103] rounded-full px-2 py-0.5">답변 대기 {pendingCount}</span>}
-        </span>
-        <ArrowRight className="w-4 h-4 text-[#FF4103] shrink-0" strokeWidth={2.25} />
-      </Link>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-3 gap-2 mb-5 max-w-xl">
         {[
           { label: "전체 회원", value: profiles.length },
           { label: "최근 7일 가입", value: recentJoined },
           { label: "등록 자료", value: resources.length },
-          { label: "답변 대기", value: pendingCount },
         ].map((c) => (
           <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
             <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
@@ -165,18 +131,31 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      {tab === "analytics" && (
-        <div>
-          <p className="text-sm text-[#6B6B6B] mb-3">
-            총 검색 {initialSearchLogs.length}건 · 질문하기 {questions.length}건에서 추출한 자주 등장한 키워드예요.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {topKeywords.map(([w, c]) => (
-              <span key={w} className="text-xs px-3 py-1.5 rounded-full bg-[#F4F4F2] text-[#333333] border border-black/8">
-                {w} <span className="text-[#9A9A9A]">({c})</span>
-              </span>
+      {tab === "qa" && (
+        <div className="flex flex-col gap-4 max-w-xl">
+          <Link
+            href="/ask"
+            className="flex items-center justify-between gap-3 bg-[rgba(255,65,3,0.06)] border border-[rgba(255,65,3,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(255,65,3,0.1)]"
+          >
+            <span className="text-sm font-semibold text-[#111111]">
+              질문함은 이드에게 질문하기 탭에서 확인·답변해요
+              {pendingCount > 0 && (
+                <span className="ml-2 text-[11px] font-bold text-white bg-[#FF4103] rounded-full px-2 py-0.5">답변 대기 {pendingCount}</span>
+              )}
+            </span>
+            <ArrowRight className="w-4 h-4 text-[#FF4103] shrink-0" strokeWidth={2.25} />
+          </Link>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "전체 질문", value: questions.length },
+              { label: "답변 완료", value: questions.length - pendingCount },
+              { label: "답변 대기", value: pendingCount },
+            ].map((c) => (
+              <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
+                <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
+                <div className="text-xl font-bold text-[#111111]">{c.value}</div>
+              </div>
             ))}
-            {topKeywords.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 분석할 데이터가 없어요.</p>}
           </div>
         </div>
       )}
@@ -201,25 +180,6 @@ export default function AdminDashboard({
           onUpdate={(c) => setCoffeeChats((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
           onDelete={(id) => setCoffeeChats((prev) => prev.filter((x) => x.id !== id))}
         />
-      )}
-
-      {tab === "logs" && (
-        <div className="flex flex-col gap-2">
-          {initialSearchLogs.length === 0 && <p className="text-sm text-[#9A9A9A]">아직 검색 기록이 없어요.</p>}
-          {initialSearchLogs.map((l) => {
-            const p = profileMap.get(l.user_id);
-            return (
-              <div key={l.id} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#333333]">{l.query}</span>
-                </div>
-                <div className="text-xs text-[#9A9A9A]">
-                  {p?.name || "알 수 없음"} · {fmt(l.created_at)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
     </div>
   );

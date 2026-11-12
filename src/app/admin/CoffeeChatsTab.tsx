@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+export type CoffeeChatStatus = "booked" | "cancelled" | "declined" | "completed";
 
 export type CoffeeChat = {
   id: string;
@@ -13,7 +15,7 @@ export type CoffeeChat = {
   preferred_format: string;
   scheduled_at: string | null;
   requested_at: string | null;
-  status: "booked" | "cancelled" | "declined" | "completed";
+  status: CoffeeChatStatus;
   notes: string;
   created_at: string;
 };
@@ -24,14 +26,21 @@ const FILTER_INPUT =
 const FORM_INPUT =
   "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103] w-full";
 
-const STATUS_OPTIONS: { value: CoffeeChat["status"]; label: string }[] = [
+const STATUS_OPTIONS: { value: CoffeeChatStatus; label: string }[] = [
   { value: "booked", label: "예정" },
   { value: "completed", label: "완료" },
   { value: "cancelled", label: "취소됨" },
   { value: "declined", label: "거절됨" },
 ];
 
-function fmtDate(t: string | null) {
+const STATUS_DISPLAY: Record<CoffeeChatStatus, { label: string; cls: string }> = {
+  booked: { label: "예정", cls: "bg-[rgba(255,65,3,0.1)] text-[#FF4103]" },
+  completed: { label: "완료", cls: "bg-[rgba(16,185,129,0.12)] text-[#10B981]" },
+  cancelled: { label: "취소됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" },
+  declined: { label: "거절됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" },
+};
+
+function fmtDateTime(t: string | null) {
   if (!t) return "-";
   return new Date(t).toLocaleString("ko-KR", { year: "2-digit", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -57,15 +66,6 @@ function localInputToIso(v: string, withTime: boolean): string | null {
   return withTime ? `${v}:00+09:00` : `${v}T00:00:00+09:00`;
 }
 
-// 저장된 status(booked/cancelled/declined/completed)에, 지난 일정인데 취소/거절이 아니면 "완료"로 보이게 한다.
-function displayStatus(c: CoffeeChat): { label: string; cls: string } {
-  if (c.status === "cancelled") return { label: "취소됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" };
-  if (c.status === "declined") return { label: "거절됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" };
-  if (c.status === "completed") return { label: "완료", cls: "bg-[rgba(16,185,129,0.12)] text-[#10B981]" };
-  if (c.scheduled_at && new Date(c.scheduled_at).getTime() < Date.now()) return { label: "완료", cls: "bg-[rgba(16,185,129,0.12)] text-[#10B981]" };
-  return { label: "예정", cls: "bg-[rgba(255,65,3,0.1)] text-[#FF4103]" };
-}
-
 function csvCell(v: string | null) {
   const t = (v ?? "").replace(/"/g, '""');
   return `"${/^[=+\-@]/.test(t) ? "'" + t : t}"`;
@@ -73,29 +73,6 @@ function csvCell(v: string | null) {
 
 type Filters = { name: string; email: string; phone: string; company: string; format: string; status: "all" | "upcoming" | "completed" | "cancelled" };
 const EMPTY_FILTERS: Filters = { name: "", email: "", phone: "", company: "", format: "", status: "all" };
-
-type FormState = {
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  preferred_format: string;
-  requested_date: string;
-  scheduled_at: string;
-  status: CoffeeChat["status"];
-  notes: string;
-};
-const EMPTY_FORM: FormState = {
-  name: "",
-  email: "",
-  phone: "",
-  company: "",
-  preferred_format: "",
-  requested_date: "",
-  scheduled_at: "",
-  status: "booked",
-  notes: "",
-};
 
 export default function CoffeeChatsTab({
   coffeeChats,
@@ -109,48 +86,23 @@ export default function CoffeeChatsTab({
   onDelete: (id: string) => void;
 }) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [addBusy, setAddBusy] = useState(false);
-  const [addError, setAddError] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<CoffeeChat | null>(null);
+  const [memoFor, setMemoFor] = useState<CoffeeChat | null>(null);
 
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
-  function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
 
-  async function submitAdd() {
-    if (!form.name.trim() || !form.email.trim()) {
-      setAddError("이름과 이메일은 꼭 입력해주세요.");
-      return;
-    }
-    setAddBusy(true);
-    setAddError("");
+  async function updateStatus(c: CoffeeChat, status: CoffeeChatStatus) {
     const supabase = createClient();
-    const { data, error: err } = await supabase
-      .from("coffee_chats")
-      .insert({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        company: form.company.trim(),
-        preferred_format: form.preferred_format.trim(),
-        requested_at: localInputToIso(form.requested_date, false),
-        scheduled_at: localInputToIso(form.scheduled_at, true),
-        status: form.status,
-        notes: form.notes.trim(),
-      })
-      .select()
-      .single();
-    setAddBusy(false);
+    const { data, error: err } = await supabase.from("coffee_chats").update({ status }).eq("id", c.id).select().single();
     if (err || !data) {
-      setAddError("추가하지 못했어요: " + (err?.message || "알 수 없는 오류"));
+      alert("상태를 바꾸지 못했어요: " + (err?.message || "알 수 없는 오류"));
       return;
     }
-    onAdd(data as CoffeeChat);
-    setForm(EMPTY_FORM);
+    onUpdate(data as CoffeeChat);
   }
 
   async function remove(id: string) {
@@ -176,16 +128,14 @@ export default function CoffeeChatsTab({
       if (phoneK && !c.phone.toLowerCase().includes(phoneK)) return false;
       if (companyK && !c.company.toLowerCase().includes(companyK)) return false;
       if (formatK && !c.preferred_format.toLowerCase().includes(formatK)) return false;
-      if (filters.status !== "all") {
-        const label = displayStatus(c).label;
-        if (filters.status === "upcoming" && label !== "예정") return false;
-        if (filters.status === "completed" && label !== "완료") return false;
-        if (filters.status === "cancelled" && label !== "취소됨" && label !== "거절됨") return false;
-      }
+      if (filters.status === "upcoming" && c.status !== "booked") return false;
+      if (filters.status === "completed" && c.status !== "completed") return false;
+      if (filters.status === "cancelled" && c.status !== "cancelled" && c.status !== "declined") return false;
+      if (selectedDate && isoToLocalInput(c.scheduled_at, false) !== selectedDate) return false;
       return true;
     });
     return rows.sort((a, b) => (b.requested_at || b.created_at).localeCompare(a.requested_at || a.created_at));
-  }, [coffeeChats, filters]);
+  }, [coffeeChats, filters, selectedDate]);
 
   function exportCsv() {
     const rows = [
@@ -197,8 +147,8 @@ export default function CoffeeChatsTab({
         c.company,
         c.preferred_format,
         c.requested_at ? c.requested_at.slice(0, 10) : "",
-        c.scheduled_at ? fmtDate(c.scheduled_at) : "",
-        displayStatus(c).label,
+        c.scheduled_at ? fmtDateTime(c.scheduled_at) : "",
+        STATUS_DISPLAY[c.status].label,
         c.notes,
       ]),
     ];
@@ -216,22 +166,389 @@ export default function CoffeeChatsTab({
       completed = 0,
       cancelled = 0;
     for (const c of coffeeChats) {
-      const label = displayStatus(c).label;
-      if (label === "예정") upcoming++;
-      else if (label === "완료") completed++;
+      if (c.status === "booked") upcoming++;
+      else if (c.status === "completed") completed++;
       else cancelled++;
     }
     return { upcoming, completed, cancelled };
   }, [coffeeChats]);
 
-  const th = "text-left text-[11px] font-semibold text-[#9A9A9A] px-3 pt-2.5 pb-1.5 whitespace-nowrap";
-  const td = "px-3 py-2 text-xs text-[#333333] align-top";
+  const th = "text-left text-[11px] font-semibold text-[#9A9A9A] px-2.5 pt-2.5 pb-1.5 whitespace-nowrap";
+  const td = "px-2.5 py-2 text-xs text-[#333333] align-top";
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="bg-[#FAFAF9] border border-black/8 rounded-xl p-4 flex flex-col gap-3">
-        <p className="text-sm font-bold text-[#111111]">커피챗 직접 추가</p>
-        <p className="text-xs text-[#9A9A9A] -mt-1">메일로 안 걸러지는 건은 여기서 직접 입력해요.</p>
+    <div className="flex flex-col lg:flex-row gap-4 items-start">
+      <div className="flex-1 min-w-0 flex flex-col gap-3">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "예정", value: counts.upcoming },
+            { label: "완료", value: counts.completed },
+            { label: "취소/거절", value: counts.cancelled },
+          ].map((c) => (
+            <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
+              <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
+              <div className="text-xl font-bold text-[#111111]">{c.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs text-[#9A9A9A]">
+            {list.length}건 / 전체 {coffeeChats.length}건
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] px-2 py-1"
+            >
+              필터 초기화
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-[#FF4103] text-white rounded-lg px-3 py-2"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2.25} />
+              수동입력
+            </button>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={list.length === 0}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103] disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" strokeWidth={2.25} />
+              CSV 내보내기
+            </button>
+          </div>
+        </div>
+
+        {coffeeChats.length === 0 ? (
+          <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
+        ) : (
+          <div className="overflow-x-auto border border-black/8 rounded-xl">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-black/8">
+                  <th className={th}>이름</th>
+                  <th className={th}>이메일</th>
+                  <th className={th}>전화</th>
+                  <th className={th}>소속</th>
+                  <th className={th}>희망 방식</th>
+                  <th className={th}>예정 일시</th>
+                  <th className={th}>상태</th>
+                  <th className={th}>관리</th>
+                </tr>
+                <tr className="border-b border-black/8 bg-[#FAFAF9]">
+                  <th className="px-2.5 pb-2">
+                    <input value={filters.name} onChange={(e) => setFilter("name", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                  </th>
+                  <th className="px-2.5 pb-2">
+                    <input value={filters.email} onChange={(e) => setFilter("email", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                  </th>
+                  <th className="px-2.5 pb-2">
+                    <input value={filters.phone} onChange={(e) => setFilter("phone", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                  </th>
+                  <th className="px-2.5 pb-2">
+                    <input value={filters.company} onChange={(e) => setFilter("company", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                  </th>
+                  <th className="px-2.5 pb-2">
+                    <input value={filters.format} onChange={(e) => setFilter("format", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                  </th>
+                  <th className="px-2.5 pb-2" />
+                  <th className="px-2.5 pb-2">
+                    <select
+                      value={filters.status}
+                      onChange={(e) => setFilter("status", e.target.value as Filters["status"])}
+                      className={FILTER_INPUT}
+                      aria-label="상태 필터"
+                    >
+                      <option value="all">전체</option>
+                      <option value="upcoming">예정</option>
+                      <option value="completed">완료</option>
+                      <option value="cancelled">취소/거절</option>
+                    </select>
+                  </th>
+                  <th className="px-2.5 pb-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {list.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-2.5 py-6 text-center text-sm text-[#9A9A9A]">
+                      검색 결과가 없어요.
+                    </td>
+                  </tr>
+                )}
+                {list.map((c) => (
+                  <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
+                    <td className={`${td} font-bold text-[#111111] max-w-[72px] truncate`} title={c.name}>
+                      {c.name || "-"}
+                    </td>
+                    <td className={td}>
+                      {c.email ? (
+                        <a href={`mailto:${c.email}`} className="hover:text-[#FF4103] hover:underline">
+                          {c.email}
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className={`${td} whitespace-nowrap`}>{c.phone || "-"}</td>
+                    <td className={td}>{c.company || "-"}</td>
+                    <td className={td}>{c.preferred_format || "-"}</td>
+                    <td className={`${td} whitespace-nowrap`}>{isoToLocalInput(c.scheduled_at, false) || "-"}</td>
+                    <td className={td}>
+                      <select
+                        value={c.status}
+                        onChange={(e) => updateStatus(c, e.target.value as CoffeeChatStatus)}
+                        className={`text-[10.5px] font-semibold rounded-full pl-2 pr-1 py-0.5 border-0 focus:outline-none focus:ring-2 focus:ring-[#FF4103] ${STATUS_DISPLAY[c.status].cls}`}
+                      >
+                        {STATUS_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className={`${td} whitespace-nowrap`}>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setMemoFor(c)}
+                          aria-label="메모"
+                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.notes ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
+                        >
+                          <StickyNote className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditing(c)}
+                          aria-label="편집"
+                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                        >
+                          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(c.id)}
+                          aria-label="삭제"
+                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full lg:w-72 shrink-0">
+        <CoffeeChatCalendar coffeeChats={coffeeChats} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+      </div>
+
+      {showAdd && <AddDialog onClose={() => setShowAdd(false)} onAdded={(c) => { onAdd(c); setShowAdd(false); }} />}
+
+      {editing && (
+        <EditDialog
+          key={editing.id}
+          coffeeChat={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(c) => {
+            onUpdate(c);
+            setEditing(null);
+          }}
+        />
+      )}
+
+      {memoFor && (
+        <MemoDialog
+          key={memoFor.id}
+          coffeeChat={memoFor}
+          onClose={() => setMemoFor(null)}
+          onSaved={(c) => {
+            onUpdate(c);
+            setMemoFor(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CoffeeChatCalendar({
+  coffeeChats,
+  selectedDate,
+  onSelectDate,
+}: {
+  coffeeChats: CoffeeChat[];
+  selectedDate: string | null;
+  onSelectDate: (d: string | null) => void;
+}) {
+  const [viewDate, setViewDate] = useState(() => (selectedDate ? new Date(selectedDate) : new Date()));
+
+  const countsByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of coffeeChats) {
+      const key = isoToLocalInput(c.scheduled_at, false);
+      if (!key) continue;
+      m.set(key, (m.get(key) || 0) + 1);
+    }
+    return m;
+  }, [coffeeChats]);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const startWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  function dateKey(d: number) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="border border-black/8 rounded-xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          onClick={() => setViewDate(new Date(year, month - 1, 1))}
+          aria-label="이전 달"
+          className="p-1 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+        >
+          <ChevronLeft className="w-4 h-4" strokeWidth={2.25} />
+        </button>
+        <span className="text-sm font-bold text-[#111111]">
+          {year}년 {month + 1}월
+        </span>
+        <button
+          type="button"
+          onClick={() => setViewDate(new Date(year, month + 1, 1))}
+          aria-label="다음 달"
+          className="p-1 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+        >
+          <ChevronRight className="w-4 h-4" strokeWidth={2.25} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[#9A9A9A] mb-1">
+        {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
+          <div key={d}>{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (d === null) return <div key={`blank-${i}`} />;
+          const key = dateKey(d);
+          const count = countsByDate.get(key) || 0;
+          const isSelected = selectedDate === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelectDate(isSelected ? null : key)}
+              className={`aspect-square rounded-lg text-xs flex flex-col items-center justify-center gap-0.5 ${
+                isSelected
+                  ? "bg-[#FF4103] text-white"
+                  : count > 0
+                    ? "bg-[rgba(255,65,3,0.08)] text-[#111111] hover:bg-[rgba(255,65,3,0.15)]"
+                    : "text-[#9A9A9A] hover:bg-[#F4F4F2]"
+              }`}
+            >
+              <span>{d}</span>
+              {count > 0 && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-[#FF4103]"}`} />}
+            </button>
+          );
+        })}
+      </div>
+      {selectedDate && (
+        <button type="button" onClick={() => onSelectDate(null)} className="mt-2 text-xs text-[#9A9A9A] hover:text-[#FF4103] w-full text-center">
+          선택 해제 · 전체 보기
+        </button>
+      )}
+    </div>
+  );
+}
+
+type AddFormState = {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  preferred_format: string;
+  requested_date: string;
+  scheduled_at: string;
+  status: CoffeeChatStatus;
+  notes: string;
+};
+const EMPTY_ADD_FORM: AddFormState = {
+  name: "",
+  email: "",
+  phone: "",
+  company: "",
+  preferred_format: "",
+  requested_date: "",
+  scheduled_at: "",
+  status: "booked",
+  notes: "",
+};
+
+function AddDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (c: CoffeeChat) => void }) {
+  const [form, setForm] = useState<AddFormState>(EMPTY_ADD_FORM);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function setField<K extends keyof AddFormState>(key: K, value: AddFormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function submit() {
+    if (!form.name.trim() || !form.email.trim()) {
+      setError("이름과 이메일은 꼭 입력해주세요.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const supabase = createClient();
+    const { data, error: err } = await supabase
+      .from("coffee_chats")
+      .insert({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        company: form.company.trim(),
+        preferred_format: form.preferred_format.trim(),
+        requested_at: localInputToIso(form.requested_date, false),
+        scheduled_at: localInputToIso(form.scheduled_at, true),
+        status: form.status,
+        notes: form.notes.trim(),
+      })
+      .select()
+      .single();
+    setBusy(false);
+    if (err || !data) {
+      setError("추가하지 못했어요: " + (err?.message || "알 수 없는 오류"));
+      return;
+    }
+    onAdded(data as CoffeeChat);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl p-5 w-full max-w-md flex flex-col gap-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold text-[#111111]">커피챗 직접 추가</p>
+          <button type="button" onClick={onClose} aria-label="닫기" className="p-1 text-[#9A9A9A] hover:text-[#111111]">
+            <X className="w-4 h-4" strokeWidth={2.25} />
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="이름" className={FORM_INPUT} />
           <input value={form.email} onChange={(e) => setField("email", e.target.value)} placeholder="이메일" className={FORM_INPUT} />
@@ -243,7 +560,7 @@ export default function CoffeeChatsTab({
             placeholder="희망 방식 (선택)"
             className={FORM_INPUT}
           />
-          <select value={form.status} onChange={(e) => setField("status", e.target.value as CoffeeChat["status"])} className={FORM_INPUT}>
+          <select value={form.status} onChange={(e) => setField("status", e.target.value as CoffeeChatStatus)} className={FORM_INPUT}>
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -266,184 +583,22 @@ export default function CoffeeChatsTab({
           placeholder="비고 (선택)"
           className={`${FORM_INPUT} resize-none`}
         />
-        <div className="flex items-center justify-end gap-3 flex-wrap">
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="text-sm font-semibold text-[#9A9A9A] px-3 py-2">
+            취소
+          </button>
           <button
             type="button"
-            disabled={addBusy}
-            onClick={submitAdd}
+            disabled={busy}
+            onClick={submit}
             className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             <Plus className="w-4 h-4" strokeWidth={2.25} />
-            {addBusy ? "추가하는 중…" : "커피챗 추가"}
-          </button>
-        </div>
-        {addError && <p className="text-xs text-red-600">{addError}</p>}
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "예정", value: counts.upcoming },
-          { label: "완료", value: counts.completed },
-          { label: "취소/거절", value: counts.cancelled },
-        ].map((c) => (
-          <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
-            <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
-            <div className="text-xl font-bold text-[#111111]">{c.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="text-xs text-[#9A9A9A]">
-          {list.length}건 / 전체 {coffeeChats.length}건
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFilters(EMPTY_FILTERS)}
-            className="text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] px-2 py-1"
-          >
-            필터 초기화
-          </button>
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={list.length === 0}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103] disabled:opacity-50"
-          >
-            <Download className="w-4 h-4" strokeWidth={2.25} />
-            CSV 내보내기
+            {busy ? "추가하는 중…" : "추가"}
           </button>
         </div>
       </div>
-
-      {coffeeChats.length === 0 ? (
-        <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
-      ) : (
-        <div className="overflow-x-auto border border-black/8 rounded-xl">
-          <table className="w-full border-collapse min-w-[940px]">
-            <thead>
-              <tr className="border-b border-black/8">
-                <th className={th}>이름</th>
-                <th className={th}>이메일</th>
-                <th className={th}>전화</th>
-                <th className={th}>소속</th>
-                <th className={th}>희망 방식</th>
-                <th className={th}>신청일자</th>
-                <th className={th}>예정 일시</th>
-                <th className={th}>상태</th>
-                <th className={th}>비고</th>
-                <th className={th}>관리</th>
-              </tr>
-              <tr className="border-b border-black/8 bg-[#FAFAF9]">
-                <th className="px-3 pb-2">
-                  <input value={filters.name} onChange={(e) => setFilter("name", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
-                </th>
-                <th className="px-3 pb-2">
-                  <input value={filters.email} onChange={(e) => setFilter("email", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
-                </th>
-                <th className="px-3 pb-2">
-                  <input value={filters.phone} onChange={(e) => setFilter("phone", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
-                </th>
-                <th className="px-3 pb-2">
-                  <input value={filters.company} onChange={(e) => setFilter("company", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
-                </th>
-                <th className="px-3 pb-2">
-                  <input value={filters.format} onChange={(e) => setFilter("format", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
-                </th>
-                <th className="px-3 pb-2" />
-                <th className="px-3 pb-2" />
-                <th className="px-3 pb-2">
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilter("status", e.target.value as Filters["status"])}
-                    className={FILTER_INPUT}
-                    aria-label="상태 필터"
-                  >
-                    <option value="all">전체</option>
-                    <option value="upcoming">예정</option>
-                    <option value="completed">완료</option>
-                    <option value="cancelled">취소/거절</option>
-                  </select>
-                </th>
-                <th className="px-3 pb-2" />
-                <th className="px-3 pb-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-3 py-6 text-center text-sm text-[#9A9A9A]">
-                    검색 결과가 없어요.
-                  </td>
-                </tr>
-              )}
-              {list.map((c) => {
-                const status = displayStatus(c);
-                return (
-                  <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
-                    <td className={`${td} font-bold text-[#111111] whitespace-nowrap`}>{c.name || "-"}</td>
-                    <td className={td}>
-                      {c.email ? (
-                        <a href={`mailto:${c.email}`} className="hover:text-[#FF4103] hover:underline">
-                          {c.email}
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className={`${td} whitespace-nowrap`}>{c.phone || "-"}</td>
-                    <td className={td}>{c.company || "-"}</td>
-                    <td className={td}>{c.preferred_format || "-"}</td>
-                    <td className={`${td} whitespace-nowrap`}>{fmtDate(c.requested_at)}</td>
-                    <td className={`${td} whitespace-nowrap`}>{fmtDate(c.scheduled_at)}</td>
-                    <td className={td}>
-                      <span className={`inline-block text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${status.cls}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className={`${td} max-w-[160px] truncate`} title={c.notes}>
-                      {c.notes || ""}
-                    </td>
-                    <td className={`${td} whitespace-nowrap`}>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditing(c)}
-                          aria-label="편집"
-                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
-                        >
-                          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(c.id)}
-                          aria-label="삭제"
-                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {editing && (
-        <EditDialog
-          key={editing.id}
-          coffeeChat={editing}
-          onClose={() => setEditing(null)}
-          onSaved={(c) => {
-            onUpdate(c);
-            setEditing(null);
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -517,7 +672,7 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
             <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className={FORM_INPUT} />
           </label>
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value as CoffeeChat["status"])} className={FORM_INPUT}>
+        <select value={status} onChange={(e) => setStatus(e.target.value as CoffeeChatStatus)} className={FORM_INPUT}>
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -525,6 +680,60 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
           ))}
         </select>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="비고" className={`${FORM_INPUT} resize-none`} />
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="text-sm font-semibold text-[#9A9A9A] px-3 py-2">
+            취소
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={save}
+            className="bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+          >
+            {busy ? "저장하는 중…" : "저장"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemoDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; onClose: () => void; onSaved: (c: CoffeeChat) => void }) {
+  const [notes, setNotes] = useState(coffeeChat.notes);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    const supabase = createClient();
+    const { data, error: err } = await supabase.from("coffee_chats").update({ notes: notes.trim() }).eq("id", coffeeChat.id).select().single();
+    setBusy(false);
+    if (err || !data) {
+      setError("저장하지 못했어요: " + (err?.message || "알 수 없는 오류"));
+      return;
+    }
+    onSaved(data as CoffeeChat);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl p-5 w-full max-w-sm flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold text-[#111111]">{coffeeChat.name} · 메모</p>
+          <button type="button" onClick={onClose} aria-label="닫기" className="p-1 text-[#9A9A9A] hover:text-[#111111]">
+            <X className="w-4 h-4" strokeWidth={2.25} />
+          </button>
+        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={5}
+          placeholder="메모를 입력하세요"
+          autoFocus
+          className={`${FORM_INPUT} resize-none`}
+        />
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="text-sm font-semibold text-[#9A9A9A] px-3 py-2">
