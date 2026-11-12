@@ -112,17 +112,27 @@ export default function AdminDashboard({
       )}
 
       {tab === "resources" && (
-        <ResourcesTab
-          resources={resources}
-          onAdd={(r) => setResources((prev) => [r, ...prev])}
-          onDelete={(id) => setResources((prev) => prev.filter((r) => r.id !== id))}
-          onUpdate={(r) => setResources((prev) => prev.map((x) => (x.id === r.id ? r : x)))}
-        />
+        <div className="max-w-4xl mx-auto">
+          <ResourcesTab
+            resources={resources}
+            onAdd={(r) => setResources((prev) => [r, ...prev])}
+            onDelete={(id) => setResources((prev) => prev.filter((r) => r.id !== id))}
+            onUpdate={(r) => setResources((prev) => prev.map((x) => (x.id === r.id ? r : x)))}
+          />
+        </div>
       )}
 
-      {tab === "site" && <SiteContentTab stored={siteContent} />}
+      {tab === "site" && (
+        <div className="max-w-4xl mx-auto">
+          <SiteContentTab stored={siteContent} />
+        </div>
+      )}
 
-      {tab === "members" && <MembersTab profiles={profiles} />}
+      {tab === "members" && (
+        <div className="max-w-4xl mx-auto">
+          <MembersTab profiles={profiles} />
+        </div>
+      )}
 
       {tab === "coffeechats" && (
         <CoffeeChatsTab
