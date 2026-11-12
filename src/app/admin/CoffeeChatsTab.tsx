@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export type CoffeeChatStatus = "booked" | "cancelled" | "declined" | "completed";
@@ -111,6 +111,19 @@ function SortTh({ label, sortKey, sort, onToggle }: { label: string; sortKey: So
   );
 }
 
+function FilterSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={FILTER_INPUT} aria-label="필터">
+      <option value="">전체</option>
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function CoffeeChatsTab({
   coffeeChats,
   onAdd,
@@ -160,17 +173,12 @@ export default function CoffeeChatsTab({
   }
 
   const list = useMemo(() => {
-    const nameK = filters.name.trim().toLowerCase();
-    const emailK = filters.email.trim().toLowerCase();
-    const phoneK = filters.phone.trim().toLowerCase();
-    const companyK = filters.company.trim().toLowerCase();
-    const formatK = filters.format.trim().toLowerCase();
     const rows = coffeeChats.filter((c) => {
-      if (nameK && !c.name.toLowerCase().includes(nameK)) return false;
-      if (emailK && !c.email.toLowerCase().includes(emailK)) return false;
-      if (phoneK && !c.phone.toLowerCase().includes(phoneK)) return false;
-      if (companyK && !c.company.toLowerCase().includes(companyK)) return false;
-      if (formatK && !c.preferred_format.toLowerCase().includes(formatK)) return false;
+      if (filters.name && c.name !== filters.name) return false;
+      if (filters.email && c.email !== filters.email) return false;
+      if (filters.phone && c.phone !== filters.phone) return false;
+      if (filters.company && c.company !== filters.company) return false;
+      if (filters.format && c.preferred_format !== filters.format) return false;
       if (filters.status === "upcoming" && c.status !== "booked") return false;
       if (filters.status === "completed" && c.status !== "completed") return false;
       if (filters.status === "cancelled" && c.status !== "cancelled" && c.status !== "declined") return false;
@@ -238,6 +246,17 @@ export default function CoffeeChatsTab({
     return { upcoming, completed, cancelled };
   }, [coffeeChats]);
 
+  const options = useMemo(() => {
+    const uniq = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    return {
+      name: uniq(coffeeChats.map((c) => c.name)),
+      email: uniq(coffeeChats.map((c) => c.email)),
+      phone: uniq(coffeeChats.map((c) => c.phone)),
+      company: uniq(coffeeChats.map((c) => c.company)),
+      format: uniq(coffeeChats.map((c) => c.preferred_format)),
+    };
+  }, [coffeeChats]);
+
   const th = "text-left text-[11px] font-semibold text-[#9A9A9A] px-2.5 pt-2.5 pb-1.5 whitespace-nowrap";
   const td = "px-2.5 py-2 text-xs text-[#333333] align-top";
 
@@ -296,7 +315,7 @@ export default function CoffeeChatsTab({
           <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
         ) : (
           <div className="overflow-x-auto border border-black/8 rounded-xl">
-            <table className="border-collapse table-fixed w-[880px]">
+            <table className="border-collapse table-fixed w-full">
               <colgroup>
                 <col className="w-[84px]" />
                 <col className="w-[170px]" />
@@ -322,19 +341,19 @@ export default function CoffeeChatsTab({
                 </tr>
                 <tr className="border-b border-black/8 bg-[#FAFAF9]">
                   <th className="px-2.5 pb-2">
-                    <input value={filters.name} onChange={(e) => setFilter("name", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                    <FilterSelect value={filters.name} options={options.name} onChange={(v) => setFilter("name", v)} />
                   </th>
                   <th className="px-2.5 pb-2">
-                    <input value={filters.email} onChange={(e) => setFilter("email", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                    <FilterSelect value={filters.email} options={options.email} onChange={(v) => setFilter("email", v)} />
                   </th>
                   <th className="px-2.5 pb-2">
-                    <input value={filters.phone} onChange={(e) => setFilter("phone", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                    <FilterSelect value={filters.phone} options={options.phone} onChange={(v) => setFilter("phone", v)} />
                   </th>
                   <th className="px-2.5 pb-2">
-                    <input value={filters.company} onChange={(e) => setFilter("company", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                    <FilterSelect value={filters.company} options={options.company} onChange={(v) => setFilter("company", v)} />
                   </th>
                   <th className="px-2.5 pb-2">
-                    <input value={filters.format} onChange={(e) => setFilter("format", e.target.value)} placeholder="검색" className={FILTER_INPUT} />
+                    <FilterSelect value={filters.format} options={options.format} onChange={(v) => setFilter("format", v)} />
                   </th>
                   <th className="px-2.5 pb-2" />
                   <th className="px-2.5 pb-2" />
@@ -406,17 +425,27 @@ export default function CoffeeChatsTab({
                           type="button"
                           onClick={() => setNotesFor(c)}
                           aria-label="비고"
-                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.notes ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
+                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
                         >
                           <FileText className="w-3.5 h-3.5" strokeWidth={2} />
+                          {c.notes && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#FF4103] rounded-full flex items-center justify-center">
+                              <Check className="w-2 h-2 text-white" strokeWidth={3.5} />
+                            </span>
+                          )}
                         </button>
                         <button
                           type="button"
                           onClick={() => setMemoFor(c)}
                           aria-label="메모"
-                          className={`p-1.5 rounded-md hover:bg-[rgba(255,65,3,0.08)] ${c.memo ? "text-[#FF4103]" : "text-[#9A9A9A] hover:text-[#FF4103]"}`}
+                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
                         >
                           <StickyNote className="w-3.5 h-3.5" strokeWidth={2} />
+                          {c.memo && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#FF4103] rounded-full flex items-center justify-center">
+                              <Check className="w-2 h-2 text-white" strokeWidth={3.5} />
+                            </span>
+                          )}
                         </button>
                         <button
                           type="button"
