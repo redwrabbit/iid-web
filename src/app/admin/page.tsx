@@ -13,11 +13,15 @@ export default async function AdminPage() {
 
   if (!user || user.email !== ADMIN_EMAIL) redirect("/search");
 
-  const [{ data: questions }, { data: searchLogs }, { data: profiles }, { data: resources }] = await Promise.all([
+  const [{ data: questions }, { data: searchLogs }, { data: profiles }, { data: resources }, { data: coffeeChats }] = await Promise.all([
     supabase.from("questions").select("id, user_id, question, answer, answered_at, created_at").order("created_at", { ascending: false }),
     supabase.from("search_logs").select("id, user_id, query, created_at").order("created_at", { ascending: false }).limit(300),
     supabase.from("profiles").select("id, email, name, company, role, created_at").order("created_at", { ascending: false }),
     supabase.from("resources").select("id, title, url, category, subcategory, content, summary, created_at").order("created_at", { ascending: false }),
+    supabase
+      .from("coffee_chats")
+      .select("id, name, email, phone, company, preferred_format, scheduled_at, requested_at, status, notes, created_at")
+      .order("requested_at", { ascending: false }),
   ]);
 
   const siteContent = await getStoredContent();
@@ -28,6 +32,7 @@ export default async function AdminPage() {
       initialSearchLogs={searchLogs || []}
       profiles={profiles || []}
       initialResources={resources || []}
+      initialCoffeeChats={coffeeChats || []}
       siteContent={siteContent}
     />
   );

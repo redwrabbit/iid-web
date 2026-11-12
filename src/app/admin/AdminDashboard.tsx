@@ -2,12 +2,13 @@
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, FileText, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
+import { BarChart3, Coffee, FileText, Users, History, FileUp, Trash2, Plus, ArrowRight, Pencil, Download, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { RESOURCE_CATEGORIES } from "@/lib/resource-fields";
 import { SUBCATEGORY_LIST } from "@/lib/search";
 import type { SectionKey } from "@/lib/site-sections";
 import SiteContentTab from "./SiteContentTab";
+import CoffeeChatsTab, { type CoffeeChat } from "./CoffeeChatsTab";
 
 type Question = {
   id: string;
@@ -51,15 +52,17 @@ export default function AdminDashboard({
   initialSearchLogs,
   profiles,
   initialResources,
+  initialCoffeeChats,
   siteContent,
 }: {
   initialQuestions: Question[];
   initialSearchLogs: SearchLog[];
   profiles: Profile[];
   initialResources: Resource[];
+  initialCoffeeChats: CoffeeChat[];
   siteContent: Partial<Record<SectionKey, unknown>>;
 }) {
-  const [tab, setTab] = useState<"analytics" | "resources" | "site" | "members" | "logs">("analytics");
+  const [tab, setTab] = useState<"analytics" | "resources" | "site" | "members" | "coffeechats" | "logs">("analytics");
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
@@ -108,6 +111,7 @@ export default function AdminDashboard({
           { k: "resources", label: "자료 관리", Icon: FileUp },
           { k: "site", label: "사이트 콘텐츠", Icon: FileText },
           { k: "members", label: "회원", Icon: Users },
+          { k: "coffeechats", label: "커피챗", Icon: Coffee },
           { k: "logs", label: "검색 로그", Icon: History },
         ].map((t) => (
           <button
@@ -151,6 +155,8 @@ export default function AdminDashboard({
       {tab === "site" && <SiteContentTab stored={siteContent} />}
 
       {tab === "members" && <MembersTab profiles={profiles} />}
+
+      {tab === "coffeechats" && <CoffeeChatsTab coffeeChats={initialCoffeeChats} />}
 
       {tab === "logs" && (
         <div className="flex flex-col gap-2">

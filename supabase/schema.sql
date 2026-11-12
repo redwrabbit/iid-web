@@ -216,3 +216,31 @@ create policy "owner inserts own message replies" on public.message_replies
 create policy "admin inserts message replies" on public.message_replies
   for insert to authenticated
   with check (sender = 'admin' and auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+-- 커피챗(오프라인 미팅 예약) 현황 — 메일함에서 가져온 신청 내역을 관리자 화면에만 보여준다.
+-- 이름/이메일/전화/소속 등 제3자 개인정보라 전부 admin-only로 막는다.
+create table if not exists public.coffee_chats (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  email text not null default '',
+  phone text not null default '',
+  company text not null default '',
+  preferred_format text not null default '',
+  scheduled_at timestamptz,
+  requested_at timestamptz,
+  status text not null default 'booked' check (status in ('booked', 'cancelled', 'declined', 'completed')),
+  notes text not null default '',
+  source_thread_ids text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+alter table public.coffee_chats enable row level security;
+
+create policy "admin reads coffee chats" on public.coffee_chats
+  for select to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
+
+create policy "admin writes coffee chats" on public.coffee_chats
+  for all to authenticated
+  using (auth.jwt() ->> 'email' = 'oldddong@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
