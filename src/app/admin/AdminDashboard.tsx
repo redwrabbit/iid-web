@@ -65,6 +65,7 @@ export default function AdminDashboard({
   const [tab, setTab] = useState<"analytics" | "resources" | "site" | "members" | "coffeechats" | "logs">("analytics");
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
+  const [coffeeChats, setCoffeeChats] = useState(initialCoffeeChats);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const pendingCount = questions.filter((q) => !q.answer).length;
@@ -156,7 +157,14 @@ export default function AdminDashboard({
 
       {tab === "members" && <MembersTab profiles={profiles} />}
 
-      {tab === "coffeechats" && <CoffeeChatsTab coffeeChats={initialCoffeeChats} />}
+      {tab === "coffeechats" && (
+        <CoffeeChatsTab
+          coffeeChats={coffeeChats}
+          onAdd={(c) => setCoffeeChats((prev) => [c, ...prev])}
+          onUpdate={(c) => setCoffeeChats((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
+          onDelete={(id) => setCoffeeChats((prev) => prev.filter((x) => x.id !== id))}
+        />
+      )}
 
       {tab === "logs" && (
         <div className="flex flex-col gap-2">
