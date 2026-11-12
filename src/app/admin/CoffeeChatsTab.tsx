@@ -74,6 +74,13 @@ function isoToTimeOnly(iso: string | null): string {
   const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
   return `${get("hour")}:${get("minute")}`;
 }
+function todayKey(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+}
+function isPastDate(iso: string | null, today: string): boolean {
+  const key = isoToLocalInput(iso, false);
+  return !!key && key < today;
+}
 function localInputToIso(v: string, withTime: boolean): string | null {
   if (!v) return null;
   return withTime ? `${v}:00+09:00` : `${v}T00:00:00+09:00`;
@@ -145,6 +152,7 @@ export default function CoffeeChatsTab({
   onDelete: (id: string) => void;
 }) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [today] = useState(todayKey);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -338,7 +346,7 @@ export default function CoffeeChatsTab({
         {coffeeChats.length === 0 ? (
           <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
         ) : (
-          <div className="overflow-x-auto border border-black/8 rounded-xl">
+          <div className="border border-black/8 rounded-xl">
             <table className="border-collapse table-fixed w-full">
               <colgroup>
                 <col className="w-[84px]" />
@@ -353,7 +361,7 @@ export default function CoffeeChatsTab({
                 <col className="w-[122px]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-black/8">
+                <tr className="sticky top-20 z-10 bg-white border-b border-black/8">
                   <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
                   <SortTh label="이메일" sortKey="email" sort={sort} onToggle={toggleSort} />
                   <SortTh label="전화" sortKey="phone" sort={sort} onToggle={toggleSort} />
@@ -365,7 +373,7 @@ export default function CoffeeChatsTab({
                   <SortTh label="확인" sortKey="confirmed" sort={sort} onToggle={toggleSort} />
                   <th className={th}>관리</th>
                 </tr>
-                <tr className="border-b border-black/8 bg-[#FAFAF9]">
+                <tr className="sticky top-[108px] z-10 border-b border-black/8 bg-[#FAFAF9]">
                   <th className="px-2.5 pb-2">
                     <FilterSelect value={filters.name} options={options.name} onChange={(v) => setFilter("name", v)} />
                   </th>
@@ -420,7 +428,12 @@ export default function CoffeeChatsTab({
                   </tr>
                 )}
                 {list.map((c) => (
-                  <tr key={c.id} className="border-b border-black/8 last:border-0 hover:bg-[#FAFAF9]">
+                  <tr
+                    key={c.id}
+                    className={`border-b border-black/8 last:border-0 ${
+                      isPastDate(c.scheduled_at, today) ? "bg-[#F4F4F2] hover:bg-[#ECECE9]" : "hover:bg-[#FAFAF9]"
+                    }`}
+                  >
                     <td className={`${td} whitespace-nowrap overflow-hidden`} title={c.name}>
                       <span className="inline-flex items-center gap-1 max-w-full">
                         <span className="truncate font-bold text-[#111111]">{c.name || "-"}</span>
@@ -526,7 +539,7 @@ export default function CoffeeChatsTab({
         )}
       </div>
 
-      <div className="w-full xl:w-[360px] shrink-0">
+      <div className="w-full xl:w-[360px] shrink-0 xl:sticky xl:top-20 xl:self-start">
         <CoffeeChatCalendar coffeeChats={coffeeChats} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
       </div>
 

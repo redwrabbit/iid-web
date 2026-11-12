@@ -49,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" className={`${notoSerif.variable} ${jua.variable} h-full`}>
       <body className="h-full flex flex-col bg-white text-[#111111] font-sans antialiased">
         <SiteHeader />
-        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">{children}</main>
+        <main className="flex-1 flex flex-col min-h-0 overflow-auto">{children}</main>
       </body>
     </html>
   );
