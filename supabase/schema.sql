@@ -236,10 +236,12 @@ create table if not exists public.coffee_chats (
 
 alter table public.coffee_chats enable row level security;
 
+drop policy if exists "admin reads coffee chats" on public.coffee_chats;
 create policy "admin reads coffee chats" on public.coffee_chats
   for select to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com');
 
+drop policy if exists "admin writes coffee chats" on public.coffee_chats;
 create policy "admin writes coffee chats" on public.coffee_chats
   for all to authenticated
   using (auth.jwt() ->> 'email' = 'oldddong@gmail.com')
