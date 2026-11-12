@@ -104,7 +104,7 @@ function SortTh({ label, sortKey, sort, onToggle }: { label: string; sortKey: So
             <ChevronDown className="w-3 h-3" strokeWidth={2.5} />
           )
         ) : (
-          <ChevronDown className="w-3 h-3 opacity-0" strokeWidth={2.5} />
+          <ChevronDown className="w-3 h-3 text-black/15" strokeWidth={2.5} />
         )}
       </button>
     </th>
@@ -242,7 +242,7 @@ export default function CoffeeChatsTab({
   const td = "px-2.5 py-2 text-xs text-[#333333] align-top";
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 items-start">
+    <div className="flex flex-col xl:flex-row gap-4 items-start">
       <div className="flex-1 min-w-0 flex flex-col gap-3">
         <div className="grid grid-cols-3 gap-2">
           {[
@@ -296,17 +296,17 @@ export default function CoffeeChatsTab({
           <p className="text-sm text-[#9A9A9A]">아직 등록된 커피챗 내역이 없어요.</p>
         ) : (
           <div className="overflow-x-auto border border-black/8 rounded-xl">
-            <table className="border-collapse table-fixed">
+            <table className="border-collapse table-fixed w-[880px]">
               <colgroup>
-                <col className="w-[88px]" />
-                <col className="w-[200px]" />
-                <col className="w-[108px]" />
-                <col className="w-[130px]" />
                 <col className="w-[84px]" />
-                <col className="w-[92px]" />
-                <col className="w-[64px]" />
-                <col className="w-[88px]" />
-                <col className="w-[130px]" />
+                <col className="w-[170px]" />
+                <col className="w-[100px]" />
+                <col className="w-[110px]" />
+                <col className="w-[70px]" />
+                <col className="w-[82px]" />
+                <col className="w-[56px]" />
+                <col className="w-[86px]" />
+                <col className="w-[122px]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-black/8">
@@ -444,7 +444,7 @@ export default function CoffeeChatsTab({
         )}
       </div>
 
-      <div className="w-full lg:w-[400px] shrink-0">
+      <div className="w-full xl:w-[360px] shrink-0">
         <CoffeeChatCalendar coffeeChats={coffeeChats} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
       </div>
 
