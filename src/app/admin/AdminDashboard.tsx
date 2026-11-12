@@ -34,24 +34,12 @@ function fmt(t: string) {
   return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-const TAB_GROUPS = [
-  {
-    key: "dashboard",
-    label: "현황판",
-    tabs: [
-      { k: "qa", label: "질문답변", Icon: BarChart3 },
-      { k: "members", label: "회원", Icon: Users },
-      { k: "coffeechats", label: "커피챗", Icon: Coffee },
-    ],
-  },
-  {
-    key: "content",
-    label: "콘텐츠 관리",
-    tabs: [
-      { k: "resources", label: "자료 관리", Icon: FileUp },
-      { k: "site", label: "사이트 콘텐츠", Icon: FileText },
-    ],
-  },
+const TABS = [
+  { k: "coffeechats", label: "커피챗", Icon: Coffee },
+  { k: "qa", label: "질문답변", Icon: BarChart3 },
+  { k: "members", label: "회원", Icon: Users },
+  { k: "resources", label: "자료 관리", Icon: FileUp },
+  { k: "site", label: "사이트 콘텐츠", Icon: FileText },
 ] as const;
 
 export default function AdminDashboard({
@@ -67,72 +55,35 @@ export default function AdminDashboard({
   initialCoffeeChats: CoffeeChat[];
   siteContent: Partial<Record<SectionKey, unknown>>;
 }) {
-  const [tab, setTab] = useState<"qa" | "resources" | "site" | "members" | "coffeechats">("qa");
+  const [tab, setTab] = useState<"coffeechats" | "qa" | "members" | "resources" | "site">("coffeechats");
   const [questions] = useState(initialQuestions);
   const [resources, setResources] = useState(initialResources);
   const [coffeeChats, setCoffeeChats] = useState(initialCoffeeChats);
 
-  const activeGroup = TAB_GROUPS.find((g) => g.tabs.some((t) => t.k === tab))?.key ?? TAB_GROUPS[0].key;
-  function selectGroup(groupKey: (typeof TAB_GROUPS)[number]["key"]) {
-    const group = TAB_GROUPS.find((g) => g.key === groupKey);
-    if (group && !group.tabs.some((t) => t.k === tab)) setTab(group.tabs[0].k as typeof tab);
-  }
-
   const pendingCount = questions.filter((q) => !q.answer).length;
-  const [now] = useState(() => Date.now());
-  const recentJoined = profiles.filter((p) => now - new Date(p.created_at).getTime() < 7 * 86400000).length;
 
   return (
     <div className="w-full px-4 sm:px-6 py-6 flex-1">
-      <h1 className="text-xl font-bold mb-5 text-[#111111]">관리자 페이지</h1>
+      <h1 className="text-xl font-bold mb-5 text-[#111111] text-center">관리자 페이지</h1>
 
-      <div className="grid grid-cols-3 gap-2 mb-5 max-w-xl">
-        {[
-          { label: "전체 회원", value: profiles.length },
-          { label: "최근 7일 가입", value: recentJoined },
-          { label: "등록 자료", value: resources.length },
-        ].map((c) => (
-          <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
-            <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
-            <div className="text-xl font-bold text-[#111111]">{c.value}</div>
-          </div>
+      <div className="flex justify-center gap-1.5 flex-wrap mb-5">
+        {TABS.map((t) => (
+          <button
+            key={t.k}
+            type="button"
+            onClick={() => setTab(t.k as typeof tab)}
+            className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-full ${
+              tab === t.k ? "bg-[#FF4103] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
+            }`}
+          >
+            <t.Icon className="w-4 h-4" strokeWidth={2.25} />
+            {t.label}
+          </button>
         ))}
       </div>
 
-      <div className="flex flex-col gap-2.5 mb-5">
-        <div className="flex gap-1.5">
-          {TAB_GROUPS.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              onClick={() => selectGroup(g.key)}
-              className={`text-sm font-semibold px-4 py-2 rounded-full ${
-                activeGroup === g.key ? "bg-[#111111] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
-              }`}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {TAB_GROUPS.find((g) => g.key === activeGroup)!.tabs.map((t) => (
-            <button
-              key={t.k}
-              type="button"
-              onClick={() => setTab(t.k as typeof tab)}
-              className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-full ${
-                tab === t.k ? "bg-[#FF4103] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
-              }`}
-            >
-              <t.Icon className="w-4 h-4" strokeWidth={2.25} />
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {tab === "qa" && (
-        <div className="flex flex-col gap-4 max-w-xl">
+        <div className="flex flex-col gap-4 max-w-xl mx-auto">
           <Link
             href="/ask"
             className="flex items-center justify-between gap-3 bg-[rgba(255,65,3,0.06)] border border-[rgba(255,65,3,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(255,65,3,0.1)]"
@@ -195,6 +146,8 @@ function csvCell(v: string | null) {
 
 function MembersTab({ profiles }: { profiles: Profile[] }) {
   const [q, setQ] = useState("");
+  const [now] = useState(() => Date.now());
+  const recentJoined = profiles.filter((p) => now - new Date(p.created_at).getTime() < 7 * 86400000).length;
   const list = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return profiles;
@@ -214,6 +167,17 @@ function MembersTab({ profiles }: { profiles: Profile[] }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2 max-w-xs">
+        {[
+          { label: "전체 회원", value: profiles.length },
+          { label: "최근 7일 가입", value: recentJoined },
+        ].map((c) => (
+          <div key={c.label} className="bg-[#FAFAF9] border border-black/8 rounded-xl px-4 py-3">
+            <div className="text-[11px] text-[#9A9A9A]">{c.label}</div>
+            <div className="text-xl font-bold text-[#111111]">{c.value}</div>
+          </div>
+        ))}
+      </div>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9A9A9A]" />
