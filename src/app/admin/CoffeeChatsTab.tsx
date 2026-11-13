@@ -361,7 +361,7 @@ export default function CoffeeChatsTab({
                 <col className="w-[122px]" />
               </colgroup>
               <thead>
-                <tr className="sticky top-20 z-10 bg-white border-b border-black/8">
+                <tr className="sticky top-0 z-10 bg-white border-b border-black/8">
                   <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
                   <SortTh label="이메일" sortKey="email" sort={sort} onToggle={toggleSort} />
                   <SortTh label="전화" sortKey="phone" sort={sort} onToggle={toggleSort} />
@@ -373,7 +373,7 @@ export default function CoffeeChatsTab({
                   <SortTh label="확인" sortKey="confirmed" sort={sort} onToggle={toggleSort} />
                   <th className={th}>관리</th>
                 </tr>
-                <tr className="sticky top-[108px] z-10 border-b border-black/8 bg-[#FAFAF9]">
+                <tr className="sticky top-[34px] z-10 border-b border-black/8 bg-[#FAFAF9]">
                   <th className="px-2.5 pb-2">
                     <FilterSelect value={filters.name} options={options.name} onChange={(v) => setFilter("name", v)} />
                   </th>
@@ -539,7 +539,7 @@ export default function CoffeeChatsTab({
         )}
       </div>
 
-      <div className="w-full xl:w-[360px] shrink-0 xl:sticky xl:top-20 xl:self-start">
+      <div className="w-full xl:w-[360px] shrink-0 xl:sticky xl:top-0 xl:self-start">
         <CoffeeChatCalendar coffeeChats={coffeeChats} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
       </div>
 
