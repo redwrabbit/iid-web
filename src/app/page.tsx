@@ -28,8 +28,8 @@ export default function Home() {
                 className="home__author-photo"
                 src="/profile.png"
                 alt="김동현(이드)"
-                width={160}
-                height={160}
+                width={220}
+                height={220}
               />
               <div>
                 <p className="home__author-name">김동현 · 이드</p>
