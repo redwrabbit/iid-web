@@ -15,7 +15,16 @@ export default function Home() {
           <div className="home__main">
             <h1>조직과 사람에<br />대한 의사결정을<br /><em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
-            <p className="home__credit">현 티오더 HR Director · 전 토스 · 야놀자 · 클래스101 · 휴이노</p>
+            <ul className="career home__career">
+              <li><b>現</b> 티오더 HR Director</li>
+              <li><b>前</b> 휴이노 HR 리드</li>
+              <li><b>前</b> 클래스101 HR Head</li>
+              <li><b>前</b> 야놀자 HRBP Team Lead</li>
+              <li><b>前</b> 토스 People Operation Manager</li>
+              <li><b>前</b> 현대자동차그룹 기획조정실 인사실</li>
+              <li><b>前</b> 현대모비스 글로벌HR기획팀</li>
+              <li className="muted">서울대학교 경영학과 졸업</li>
+            </ul>
           </div>
           <div className="home__side">
             <div className="home__id">

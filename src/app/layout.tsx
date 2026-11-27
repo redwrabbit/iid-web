@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Noto_Serif_KR, Jua } from "next/font/google";
+import { Noto_Serif_KR } from "next/font/google";
+import localFont from "next/font/local";
 import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
 import "./site.css";
@@ -11,9 +12,9 @@ const notoSerif = Noto_Serif_KR({
   weight: ["500", "600", "700"],
 });
 
-const jua = Jua({
-  variable: "--font-jua",
-  subsets: ["latin"],
+const wantedSans = localFont({
+  variable: "--font-display",
+  src: "../fonts/WantedSans-Regular.woff2",
   weight: "400",
   display: "swap",
 });
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className={`${notoSerif.variable} ${jua.variable} h-full`}>
+    <html lang="ko" className={`${notoSerif.variable} ${wantedSans.variable} h-full`}>
       <body className="h-full flex flex-col bg-white text-[#111111] font-sans antialiased">
         <SiteHeader />
         <main className="flex-1 flex flex-col min-h-0 overflow-auto">{children}</main>
