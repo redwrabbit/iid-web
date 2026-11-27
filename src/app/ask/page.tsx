@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import AskThread, { type Question, type MessageReply } from "./AskThread";
 import AdminInboxChat, { type AdminQuestion } from "./AdminInboxChat";
@@ -16,15 +17,15 @@ export default async function AskPage() {
     // 전혀 전달되지 않아 카카오톡/슬랙 같은 링크 미리보기 봇이 썸네일을 못 가져옵니다.
     // 그래서 리다이렉트 대신 이 자리에서 바로 로그인 안내를 보여줍니다.
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center">
-          <p className="text-sm text-[#6B6B6B] mb-4">이드에게 질문하려면 로그인이 필요해요.</p>
-          <Link
-            href="/login"
-            className="inline-flex text-sm font-semibold px-5 py-2.5 rounded-full bg-[#FF4103] text-white hover:opacity-90"
-          >
-            로그인 / 가입
-          </Link>
+      <div className="site-root site-flex">
+        <div className="gate">
+          <div className="gate__inner">
+            <Image src="/iid-character.png" alt="이드(iid) 캐릭터" width={96} height={96} className="gate__mascot" />
+            <p className="gate__bubble">궁금한 게 있으면 편하게 물어보세요. 로그인하면 바로 질문할 수 있어요.</p>
+            <Link href="/login" className="go go--orange">
+              로그인 / 가입
+            </Link>
+          </div>
         </div>
       </div>
     );
