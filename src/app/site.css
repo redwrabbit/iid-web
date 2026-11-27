@@ -886,3 +886,25 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
 .gate__inner{display:flex;flex-direction:column;align-items:center;gap:22px;max-width:360px}
 .gate__mascot{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ink);box-shadow:var(--shadow-pop)}
 .gate__bubble{background:var(--paper);border:2px solid var(--ink);box-shadow:var(--shadow-pop);border-radius:22px 22px 22px 6px;padding:16px 22px;font:400 17px/1.5 var(--serif)}
+
+/* 모바일 메뉴: 탭이 2줄로 줄바꿈되는 대신 햄버거 버튼으로 접는다 */
+.site-root .nav-toggle{display:none;flex:none;width:40px;height:40px;margin-left:auto;border:0;background:none;padding:0;cursor:pointer;touch-action:manipulation;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.site-root .nav-toggle__bar{display:block;width:22px;height:2px;border-radius:1px;background:var(--on-dark);transition:transform var(--dur-ui) var(--ease-out),opacity var(--dur-ui) var(--ease-out)}
+.site-root .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.site-root .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2){opacity:0}
+.site-root .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+.site-root .mnav{position:absolute;left:0;right:0;top:100%;z-index:10;display:flex;flex-direction:column;background:var(--ink);border-bottom:4px solid var(--orange)}
+.site-root .mnav a{display:flex;align-items:center;min-height:52px;padding:0 24px;color:var(--on-dark);text-decoration:none;font:400 17px var(--serif);border-top:1px solid rgba(255,255,255,.14)}
+.site-root .mnav a:first-child{border-top:0}
+.site-root .mnav a[aria-current=page]{color:var(--orange);font-weight:600}
+
+@media (max-width:760px){
+  .site-root .top__in{flex-wrap:nowrap}
+  .site-root .brand{flex:0 1 auto;min-width:0}
+  .site-root .tabs{display:none}
+  .site-root .nav-toggle{display:flex}
+}
+@media (min-width:761px){
+  .site-root .mnav{display:none}
+}
