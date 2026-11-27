@@ -5,6 +5,11 @@ import { useEffect, useRef, useState } from "react";
 // 임시 디자인 리뷰 도구. ?review=1 로 한 번 켜면 localStorage에 켜짐 상태가 남아
 // 사이트 안 아무 페이지를 돌아다니며 클릭(점) 또는 드래그(자유 영역)로 메모를 남길 수 있다.
 // 실제 방문자에게는 평소 아무 흔적도 남기지 않는다(마운트 후에만 조건부로 렌더링).
+//
+// 이 사이트는 window가 아니라 <main>이 실제 스크롤 컨테이너라서(overflow-auto),
+// 좌표는 전부 "<main> 콘텐츠 기준" 값이다 — <main>의 scrollTop/Left를 더해 계산하고,
+// <ReviewMode/>도 <main> 안쪽에 position:relative 컨테이너의 자식으로 렌더링해서
+// 스크롤할 때 핀/영역이 페이지 내용과 함께 따라 움직이도록 한다.
 
 type Point = { x: number; y: number };
 
@@ -15,6 +20,19 @@ type Pin =
 type Draft =
   | { kind: "point"; pageX: number; pageY: number; snippet: string }
   | { kind: "shape"; x: number; y: number; w: number; h: number; points: [number, number][] };
+
+function getScrollContainer(): HTMLElement {
+  return (document.querySelector("main") as HTMLElement) || document.documentElement;
+}
+
+// 뷰포트 기준 clientX/Y를, <main> 스크롤 컨테이너의 "콘텐츠 기준" 좌표로 변환한다.
+// (main 자신의 getBoundingClientRect + scrollTop/Left를 더하면, 스크롤 위치와 무관하게
+// 항상 같은 콘텐츠 지점을 가리키는 고정된 좌표가 나온다)
+function toContentCoords(clientX: number, clientY: number): Point {
+  const main = getScrollContainer();
+  const rect = main.getBoundingClientRect();
+  return { x: clientX - rect.left + main.scrollLeft, y: clientY - rect.top + main.scrollTop };
+}
 
 const ACTIVE_KEY = "iid-review-active";
 const PREFIX = "iid-review:";
@@ -166,17 +184,18 @@ export default function ReviewMode() {
       if (isReviewUi(e.target) || e.button !== 0) return;
       e.preventDefault();
       drawingRef.current = true;
-      pointsRef.current = [{ x: e.pageX, y: e.pageY }];
+      pointsRef.current = [toContentCoords(e.clientX, e.clientY)];
       setLivePoints(pointsRef.current.slice());
     }
 
     function onPointerMove(e: PointerEvent) {
       if (!drawingRef.current) return;
+      const p = toContentCoords(e.clientX, e.clientY);
       const last = pointsRef.current[pointsRef.current.length - 1];
-      const dx = e.pageX - last.x;
-      const dy = e.pageY - last.y;
+      const dx = p.x - last.x;
+      const dy = p.y - last.y;
       if (dx * dx + dy * dy < 9) return; // 3px 미만 이동은 점 폭주 방지를 위해 무시
-      pointsRef.current.push({ x: e.pageX, y: e.pageY });
+      pointsRef.current.push(p);
       setLivePoints(pointsRef.current.slice());
     }
 
@@ -197,7 +216,8 @@ export default function ReviewMode() {
       if (w < CLICK_THRESHOLD && h < CLICK_THRESHOLD) {
         const target = e.target as HTMLElement;
         const snippet = (target?.innerText || target?.getAttribute("aria-label") || target?.tagName || "").trim().slice(0, 60);
-        setDraft({ kind: "point", pageX: e.pageX, pageY: e.pageY, snippet });
+        const p = toContentCoords(e.clientX, e.clientY);
+        setDraft({ kind: "point", pageX: p.x, pageY: p.y, snippet });
       } else {
         const rel: [number, number][] = pts.map((p) => [p.x - minX, p.y - minY]);
         setDraft({ kind: "shape", x: minX, y: minY, w, h, points: rel });

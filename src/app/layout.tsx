@@ -51,8 +51,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" className={`${notoSerif.variable} ${wantedSans.variable} h-full`}>
       <body className="h-full flex flex-col bg-white text-[#111111] font-sans antialiased">
         <SiteHeader />
-        <main className="flex-1 flex flex-col min-h-0 overflow-auto">{children}</main>
-        <ReviewMode />
+        <main className="relative flex-1 flex flex-col min-h-0 overflow-auto">
+          {children}
+          <ReviewMode />
+        </main>
       </body>
     </html>
   );
