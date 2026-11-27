@@ -3,13 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 
 // 임시 디자인 리뷰 도구. ?review=1 로 한 번 켜면 localStorage에 켜짐 상태가 남아
-// 사이트 안 아무 페이지를 돌아다니며 클릭 → 메모를 남길 수 있다. 실제 방문자에게는
-// 평소 아무 흔적도 남기지 않는다(마운트 후에만 조건부로 렌더링).
+// 사이트 안 아무 페이지를 돌아다니며 클릭(점) 또는 드래그(자유 영역)로 메모를 남길 수 있다.
+// 실제 방문자에게는 평소 아무 흔적도 남기지 않는다(마운트 후에만 조건부로 렌더링).
 
-type Pin = { id: string; pageX: number; pageY: number; snippet: string; note: string; ts: number };
+type Point = { x: number; y: number };
+
+type Pin =
+  | { id: string; kind: "point"; pageX: number; pageY: number; snippet: string; note: string; ts: number }
+  | { id: string; kind: "shape"; x: number; y: number; w: number; h: number; points: [number, number][]; note: string; ts: number };
+
+type Draft =
+  | { kind: "point"; pageX: number; pageY: number; snippet: string }
+  | { kind: "shape"; x: number; y: number; w: number; h: number; points: [number, number][] };
 
 const ACTIVE_KEY = "iid-review-active";
 const PREFIX = "iid-review:";
+const CLICK_THRESHOLD = 10; // 이보다 작게 움직이면 그냥 클릭(점)으로 취급
 
 function keyFor(pathname: string) {
   return PREFIX + pathname;
@@ -49,10 +58,39 @@ function exportAll(): string {
     pins
       .slice()
       .sort((a, b) => a.ts - b.ts)
-      .forEach((p, idx) => lines.push(`${idx + 1}. "${p.snippet}" → ${p.note}`));
+      .forEach((p, idx) => {
+        const label = p.kind === "point" ? `"${p.snippet}"` : "[드래그로 표시한 영역]";
+        lines.push(`${idx + 1}. ${label} → ${p.note}`);
+      });
     lines.push("");
   }
   return lines.join("\n").trim() || "(남긴 피드백이 아직 없어요)";
+}
+
+function pathD(points: [number, number][] | Point[], closed: boolean) {
+  const pts = points.map((p) => (Array.isArray(p) ? { x: p[0], y: p[1] } : p));
+  if (!pts.length) return "";
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") + (closed ? " Z" : "");
+}
+
+function ShapeOutline({ x, y, w, h, points, draft }: { x: number; y: number; w: number; h: number; points: [number, number][]; draft?: boolean }) {
+  return (
+    <svg
+      data-review-ui
+      style={{ position: "absolute", left: x, top: y, width: Math.max(w, 1), height: Math.max(h, 1), overflow: "visible", pointerEvents: "none", zIndex: 2147482999 }}
+    >
+      <path
+        d={pathD(points, !draft)}
+        fill={draft ? "none" : "rgba(139,46,60,0.14)"}
+        stroke="#8B2E3C"
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        strokeDasharray={draft ? "6 4" : undefined}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
 }
 
 export default function ReviewMode() {
@@ -60,9 +98,12 @@ export default function ReviewMode() {
   const [active, setActive] = useState(false);
   const [pathname, setPathname] = useState("/");
   const [pins, setPins] = useState<Pin[]>([]);
-  const [draft, setDraft] = useState<{ pageX: number; pageY: number; snippet: string } | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [draftText, setDraftText] = useState("");
+  const [livePoints, setLivePoints] = useState<Point[] | null>(null);
   const draftInputRef = useRef<HTMLTextAreaElement>(null);
+  const drawingRef = useRef(false);
+  const pointsRef = useRef<Point[]>([]);
 
   useEffect(() => {
     // window/localStorage는 서버 렌더에는 없으므로, 마운트된 뒤 클라이언트에서만 동기화한다
@@ -91,19 +132,87 @@ export default function ReviewMode() {
     return () => clearInterval(id);
   }, [mounted, pathname]);
 
+  // 리뷰 모드 중에는 드래그로 텍스트가 선택되지 않도록
+  useEffect(() => {
+    if (!active) return;
+    const prev = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.userSelect = prev;
+    };
+  }, [active]);
+
+  // 실제 클릭/네비게이션은 항상 막는다(우리 오버레이 UI는 제외)
   useEffect(() => {
     if (!active) return;
     function onClick(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (target.closest("[data-review-ui]")) return;
+      if (e.target instanceof HTMLElement && e.target.closest("[data-review-ui]")) return;
       e.preventDefault();
       e.stopPropagation();
-      const snippet = (target.innerText || target.getAttribute("aria-label") || target.tagName).trim().slice(0, 60);
-      setDraft({ pageX: e.pageX, pageY: e.pageY, snippet });
-      setDraftText("");
     }
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
+  }, [active]);
+
+  // 클릭(점) vs 드래그(자유 영역)를 pointerdown/move/up으로 직접 구분한다
+  useEffect(() => {
+    if (!active) return;
+
+    function isReviewUi(t: EventTarget | null) {
+      return t instanceof HTMLElement && !!t.closest("[data-review-ui]");
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      if (isReviewUi(e.target) || e.button !== 0) return;
+      e.preventDefault();
+      drawingRef.current = true;
+      pointsRef.current = [{ x: e.pageX, y: e.pageY }];
+      setLivePoints(pointsRef.current.slice());
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (!drawingRef.current) return;
+      const last = pointsRef.current[pointsRef.current.length - 1];
+      const dx = e.pageX - last.x;
+      const dy = e.pageY - last.y;
+      if (dx * dx + dy * dy < 9) return; // 3px 미만 이동은 점 폭주 방지를 위해 무시
+      pointsRef.current.push({ x: e.pageX, y: e.pageY });
+      setLivePoints(pointsRef.current.slice());
+    }
+
+    function onPointerUp(e: PointerEvent) {
+      if (!drawingRef.current) return;
+      drawingRef.current = false;
+      const pts = pointsRef.current;
+      setLivePoints(null);
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const w = maxX - minX;
+      const h = maxY - minY;
+
+      if (w < CLICK_THRESHOLD && h < CLICK_THRESHOLD) {
+        const target = e.target as HTMLElement;
+        const snippet = (target?.innerText || target?.getAttribute("aria-label") || target?.tagName || "").trim().slice(0, 60);
+        setDraft({ kind: "point", pageX: e.pageX, pageY: e.pageY, snippet });
+      } else {
+        const rel: [number, number][] = pts.map((p) => [p.x - minX, p.y - minY]);
+        setDraft({ kind: "shape", x: minX, y: minY, w, h, points: rel });
+      }
+      setDraftText("");
+    }
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("pointermove", onPointerMove, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+    };
   }, [active]);
 
   useEffect(() => {
@@ -117,7 +226,12 @@ export default function ReviewMode() {
       setDraft(null);
       return;
     }
-    const next = [...pins, { id: crypto.randomUUID(), pageX: draft.pageX, pageY: draft.pageY, snippet: draft.snippet, note: draftText.trim(), ts: Date.now() }];
+    const base = { id: crypto.randomUUID(), note: draftText.trim(), ts: Date.now() };
+    const pin: Pin =
+      draft.kind === "point"
+        ? { ...base, kind: "point", pageX: draft.pageX, pageY: draft.pageY, snippet: draft.snippet }
+        : { ...base, kind: "shape", x: draft.x, y: draft.y, w: draft.w, h: draft.h, points: draft.points };
+    const next = [...pins, pin];
     setPins(next);
     savePins(pathname, next);
     setDraft(null);
@@ -150,28 +264,58 @@ export default function ReviewMode() {
     window.location.reload();
   }
 
+  const draftAnchor =
+    draft?.kind === "point" ? { x: draft.pageX, y: draft.pageY } : draft ? { x: draft.x + draft.w / 2, y: draft.y + draft.h } : null;
+
   return (
     <div data-review-ui>
-      {pins.map((p, i) => (
-        <div key={p.id} data-review-ui style={{ position: "absolute", left: p.pageX, top: p.pageY, transform: "translate(-50%,-50%)", zIndex: 2147483000 }}>
-          <button
-            type="button"
-            onClick={() => removePin(p.id)}
-            title={`${p.note}\n(눌러서 지우기)`}
-            className="w-7 h-7 rounded-full bg-[#8B2E3C] text-white text-[11px] font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,.35)] border-2 border-white hover:scale-110 transition-transform cursor-pointer"
-          >
-            {i + 1}
-          </button>
-        </div>
-      ))}
+      {pins.map((p, i) => {
+        const center = p.kind === "point" ? { x: p.pageX, y: p.pageY } : { x: p.x + p.w / 2, y: p.y + p.h / 2 };
+        return (
+          <div key={p.id}>
+            {p.kind === "shape" && <ShapeOutline x={p.x} y={p.y} w={p.w} h={p.h} points={p.points} />}
+            <div data-review-ui style={{ position: "absolute", left: center.x, top: center.y, transform: "translate(-50%,-50%)", zIndex: 2147483000 }}>
+              <button
+                type="button"
+                onClick={() => removePin(p.id)}
+                title={`${p.note}\n(눌러서 지우기)`}
+                className="w-7 h-7 rounded-full bg-[#8B2E3C] text-white text-[11px] font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,.35)] border-2 border-white hover:scale-110 transition-transform cursor-pointer"
+              >
+                {i + 1}
+              </button>
+            </div>
+          </div>
+        );
+      })}
 
-      {draft && (
+      {livePoints &&
+        livePoints.length > 1 &&
+        (() => {
+          const minX = Math.min(...livePoints.map((p) => p.x));
+          const minY = Math.min(...livePoints.map((p) => p.y));
+          const maxX = Math.max(...livePoints.map((p) => p.x));
+          const maxY = Math.max(...livePoints.map((p) => p.y));
+          return (
+            <ShapeOutline
+              x={minX}
+              y={minY}
+              w={maxX - minX}
+              h={maxY - minY}
+              points={livePoints.map((p) => [p.x - minX, p.y - minY])}
+              draft
+            />
+          );
+        })()}
+
+      {draft?.kind === "shape" && <ShapeOutline x={draft.x} y={draft.y} w={draft.w} h={draft.h} points={draft.points} />}
+
+      {draft && draftAnchor && (
         <div
           data-review-ui
-          style={{ position: "absolute", left: draft.pageX, top: draft.pageY, zIndex: 2147483001 }}
-          className="w-64 -translate-x-1/2 bg-white border border-black/15 rounded-xl shadow-2xl p-3"
+          style={{ position: "absolute", left: draftAnchor.x, top: draftAnchor.y, zIndex: 2147483001 }}
+          className="w-64 -translate-x-1/2 mt-2 bg-white border border-black/15 rounded-xl shadow-2xl p-3"
         >
-          <p className="text-[11px] text-[#9A9A9A] mb-1.5 truncate">“{draft.snippet}”</p>
+          <p className="text-[11px] text-[#9A9A9A] mb-1.5 truncate">{draft.kind === "point" ? `“${draft.snippet}”` : "드래그로 표시한 영역"}</p>
           <textarea
             ref={draftInputRef}
             value={draftText}
@@ -204,7 +348,7 @@ export default function ReviewMode() {
         className="flex items-center gap-2 bg-[#111111] text-white rounded-full pl-4 pr-2 py-2 shadow-2xl text-sm whitespace-nowrap"
       >
         <span className="font-semibold">피드백 모드</span>
-        <span className="text-white/50 hidden sm:inline">· 화면을 클릭해서 메모를 남기세요</span>
+        <span className="text-white/50 hidden sm:inline">· 클릭(점) 또는 드래그(영역)로 메모를 남기세요</span>
         <span className="text-white/70 text-xs ml-1">{pins.length}개</span>
         <button type="button" onClick={clearPage} className="ml-1 bg-white/10 hover:bg-white/20 rounded-full px-3 py-1 font-semibold">
           비우기
