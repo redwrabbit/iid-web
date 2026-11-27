@@ -106,7 +106,7 @@ function insertLinkCmd(el: HTMLDivElement) {
 // 굵게/밑줄/목록/링크 서식 버튼 한 줄. 입력창 위에 올려서 쓴다.
 // onMouseDown에서 버튼 자체의 포커스를 막아야, 클릭해도 입력창의 선택 영역이 풀리지 않는다.
 export function FormatToolbar({ editableRef }: { editableRef: RefObject<HTMLDivElement | null> }) {
-  const btnCls = "w-7 h-7 rounded-md flex items-center justify-center text-[#6B6B6B] hover:text-[#FF4103] hover:bg-[#F4F4F2]";
+  const btnCls = "w-7 h-7 rounded-md flex items-center justify-center text-[#6B6B6B] hover:text-[#8B2E3C] hover:bg-[#F4F4F2]";
   const keepFocus = (e: React.MouseEvent) => e.preventDefault();
   return (
     <div className="flex items-center gap-0.5 mb-1">
@@ -290,7 +290,7 @@ export function RichEditable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="relative flex-1 border border-black/15 rounded-xl bg-[#FAFAF9] focus-within:ring-2 focus-within:ring-[#FF4103]">
+    <div className="relative flex-1 border border-black/15 rounded-xl bg-[#FAFAF9] focus-within:ring-2 focus-within:ring-[#8B2E3C]">
       {empty && <div className={`pointer-events-none absolute inset-0 text-sm text-[#9A9A9A] ${padClassName}`}>{placeholder}</div>}
       <div
         ref={editableRef}
@@ -502,7 +502,7 @@ export function InlineEditBox({
           type="button"
           disabled={busy || isEmpty}
           onClick={save}
-          className="text-xs font-semibold text-white bg-[#FF4103] rounded-lg px-3 py-1.5 disabled:opacity-60"
+          className="text-xs font-semibold text-white bg-[#8B2E3C] rounded-lg px-3 py-1.5 disabled:opacity-60"
         >
           저장
         </button>
@@ -546,7 +546,7 @@ export function DragHandle({ onDrag, className = "hidden lg:block" }: { onDrag: 
       onMouseDown={onMouseDown}
       role="separator"
       aria-orientation="vertical"
-      className={`w-1 shrink-0 cursor-col-resize bg-black/5 hover:bg-[#FF4103]/40 active:bg-[#FF4103]/60 transition-colors ${className}`}
+      className={`w-1 shrink-0 cursor-col-resize bg-black/5 hover:bg-[#8B2E3C]/40 active:bg-[#8B2E3C]/60 transition-colors ${className}`}
     />
   );
 }
@@ -670,7 +670,7 @@ export function ThreadPanel({
             <div key={r.id} className={`flex flex-col gap-1 ${own ? "items-end" : "items-start"}`}>
               <div
                 className={`max-w-[90%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
-                  own ? "bg-[#FF4103] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
+                  own ? "bg-[#8B2E3C] text-white rounded-br-md" : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
                 }`}
               >
                 {renderRichText(r.text)}
@@ -682,7 +682,7 @@ export function ThreadPanel({
                     type="button"
                     onClick={() => setEditingReplyId(r.id)}
                     aria-label="수정"
-                    className="text-[#B0B0B0] hover:text-[#FF4103]"
+                    className="text-[#B0B0B0] hover:text-[#8B2E3C]"
                   >
                     <Pencil className="w-3 h-3" strokeWidth={2} />
                   </button>
@@ -708,7 +708,7 @@ export function ThreadPanel({
             type="button"
             disabled={busy || isEmpty}
             onClick={submit}
-            className="w-10 h-10 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+            className="w-10 h-10 shrink-0 rounded-xl bg-[#8B2E3C] text-white flex items-center justify-center disabled:opacity-60"
           >
             <Send className="w-4 h-4" strokeWidth={2.25} />
           </button>
@@ -773,7 +773,7 @@ export function ReactionTrigger({
         className={`text-xs rounded-full px-1.5 py-0.5 ${
           reaction
             ? `font-semibold ${TEXT_REACTION_COLORS[reaction] || "bg-[#F4F4F2] text-[#333333]"}`
-            : "text-[#C4C4C4] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+            : "text-[#C4C4C4] hover:text-[#8B2E3C] hover:bg-[#F4F4F2]"
         } ${reaction && TEXT_REACTION_COLORS[reaction] ? "px-2.5" : ""}`}
       >
         {reaction || <SmilePlus className="w-3.5 h-3.5" strokeWidth={2} />}
@@ -1017,8 +1017,8 @@ export default function AskThread({
         }}
         className={
           hasReplies
-            ? `inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#FF4103] rounded-full px-2 py-0.5 hover:opacity-85 ${align === "end" ? "self-end" : "self-start"}`
-            : `text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline ${align === "end" ? "self-end" : "self-start"}`
+            ? `inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#8B2E3C] rounded-full px-2 py-0.5 hover:opacity-85 ${align === "end" ? "self-end" : "self-start"}`
+            : `text-[11px] text-[#9A9A9A] hover:text-[#8B2E3C] hover:underline ${align === "end" ? "self-end" : "self-start"}`
         }
       >
         {hasReplies && <MessageCircle className="w-3 h-3" strokeWidth={2.25} />}
@@ -1081,14 +1081,14 @@ export default function AskThread({
                 <div key={m.key} className="flex flex-col gap-1 items-end">
                   <div className="max-w-[85%] flex flex-col gap-2 items-end">
                     {m.text && (
-                      <div className="bg-[#FF4103] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
+                      <div className="bg-[#8B2E3C] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap font-medium">
                         {renderRichText(m.text)}
                       </div>
                     )}
                     {m.attachments && m.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 justify-end">
                         {m.attachments.map((a, i) => (
-                          <div key={i} className="bg-[#FF4103] text-white rounded-xl px-2.5 py-2">
+                          <div key={i} className="bg-[#8B2E3C] text-white rounded-xl px-2.5 py-2">
                             <AttachmentView a={a} />
                           </div>
                         ))}
@@ -1107,7 +1107,7 @@ export default function AskThread({
                       type="button"
                       onClick={() => setEditingQuestionId(m.questionId)}
                       aria-label="수정"
-                      className="text-[#C4C4C4] hover:text-[#FF4103]"
+                      className="text-[#C4C4C4] hover:text-[#8B2E3C]"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
@@ -1119,8 +1119,8 @@ export default function AskThread({
             if (m.kind === "answer") {
               return (
                 <div key={m.key} className="flex flex-col gap-1 items-start">
-                  <div className="max-w-[92%] w-full bg-[#FAFAF9] border border-[rgba(255,65,3,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
-                    <div className="text-[10.5px] font-bold text-[#FF4103] mb-1">이드의 답변</div>
+                  <div className="max-w-[92%] w-full bg-[#FAFAF9] border border-[rgba(139,46,60,0.35)] rounded-2xl rounded-bl-md px-4 py-3 text-sm whitespace-pre-wrap text-[#111111]">
+                    <div className="text-[10.5px] font-bold text-[#8B2E3C] mb-1">이드의 답변</div>
                     {renderRichText(m.text)}
                   </div>
                   <ReactionTrigger
@@ -1191,7 +1191,7 @@ export default function AskThread({
             <button
               type="submit"
               disabled={busy}
-              className="w-12 h-12 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+              className="w-12 h-12 shrink-0 rounded-xl bg-[#8B2E3C] text-white flex items-center justify-center disabled:opacity-60"
             >
               <ArrowUp className="w-5 h-5" strokeWidth={2.25} />
             </button>

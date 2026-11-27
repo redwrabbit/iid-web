@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { SECTIONS, cleanRows, sectionOf, type Field, type Row, type SectionKey } from "@/lib/site-sections";
 
 const INPUT =
-  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103] w-full";
+  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#8B2E3C] w-full";
 
 const SIZE_LABEL: Record<string, string> = { s: "s · 작게", m: "m · 중간", l: "l · 크게", half: "half · 추가 서비스(반폭)" };
 
@@ -106,7 +106,7 @@ export default function SiteContentTab({ stored }: { stored: Partial<Record<Sect
               setMsg("");
             }}
             className={`text-sm font-semibold px-3 py-1.5 rounded-full border ${
-              key === s.key ? "bg-[#FF4103] text-white border-[#FF4103]" : "bg-white text-[#555555] border-black/15"
+              key === s.key ? "bg-[#8B2E3C] text-white border-[#8B2E3C]" : "bg-white text-[#555555] border-black/15"
             }`}
           >
             {s.label}
@@ -171,7 +171,7 @@ export default function SiteContentTab({ stored }: { stored: Partial<Record<Sect
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <button type="button" onClick={add} className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103]">
+        <button type="button" onClick={add} className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#8B2E3C]">
           <Plus className="w-4 h-4" strokeWidth={2.25} />
           항목 추가
         </button>
@@ -186,7 +186,7 @@ export default function SiteContentTab({ stored }: { stored: Partial<Record<Sect
           type="button"
           disabled={busy || !dirty.has(key)}
           onClick={save}
-          className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-[#8B2E3C] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
         >
           <Save className="w-4 h-4" strokeWidth={2.25} />
           {busy ? "저장하는 중…" : "저장"}

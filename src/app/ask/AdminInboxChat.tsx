@@ -377,12 +377,12 @@ export default function AdminInboxChat({
               onKeyDown={(e) => e.key === "Enter" && selectThread(t.userId)}
               className={`group relative w-full text-left px-4 py-3 border-b border-black/8 cursor-pointer ${
                 t.hidden ? "opacity-50" : ""
-              } ${activeThread ? "bg-[rgba(255,65,3,0.08)]" : "hover:bg-[#F4F4F2]"}`}
+              } ${activeThread ? "bg-[rgba(139,46,60,0.08)]" : "hover:bg-[#F4F4F2]"}`}
             >
               <div className="flex items-center justify-between gap-2 mb-0.5 pr-6">
                 <span className="text-sm font-bold text-[#111111] truncate">{p?.name || "알 수 없음"}</span>
                 {t.unseenPending > 0 && (
-                  <span className="shrink-0 text-[10px] font-bold text-white bg-[#FF4103] rounded-full px-1.5 py-0.5">
+                  <span className="shrink-0 text-[10px] font-bold text-white bg-[#8B2E3C] rounded-full px-1.5 py-0.5">
                     {t.unseenPending}
                   </span>
                 )}
@@ -396,7 +396,7 @@ export default function AdminInboxChat({
                   toggleHidden(t.userId);
                 }}
                 aria-label={t.hidden ? "다시 보이기" : "숨기기"}
-                className={`absolute top-3 right-2 p-1 rounded-md text-[#B0B0B0] hover:text-[#FF4103] hover:bg-white ${
+                className={`absolute top-3 right-2 p-1 rounded-md text-[#B0B0B0] hover:text-[#8B2E3C] hover:bg-white ${
                   t.hidden ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                 }`}
               >
@@ -409,7 +409,7 @@ export default function AdminInboxChat({
           <button
             type="button"
             onClick={() => setShowHidden((v) => !v)}
-            className="w-full text-center text-xs text-[#9A9A9A] hover:text-[#FF4103] py-2.5 border-b border-black/8"
+            className="w-full text-center text-xs text-[#9A9A9A] hover:text-[#8B2E3C] py-2.5 border-b border-black/8"
           >
             {showHidden ? "숨긴 대화 숨기기" : `숨긴 대화 ${hiddenCount}개 보기`}
           </button>
@@ -425,7 +425,7 @@ export default function AdminInboxChat({
               <button
                 type="button"
                 onClick={() => setMobileView("list")}
-                className="lg:hidden inline-flex items-center gap-1 text-xs text-[#6B6B6B] hover:text-[#FF4103] mb-1.5"
+                className="lg:hidden inline-flex items-center gap-1 text-xs text-[#6B6B6B] hover:text-[#8B2E3C] mb-1.5"
               >
                 <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
                 목록
@@ -465,7 +465,7 @@ export default function AdminInboxChat({
                         <div
                           className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                             m.sender === "admin"
-                              ? "bg-[#FF4103] text-white rounded-br-md"
+                              ? "bg-[#8B2E3C] text-white rounded-br-md"
                               : "bg-[#F4F4F2] text-[#111111] rounded-bl-md"
                           }`}
                         >
@@ -500,8 +500,8 @@ export default function AdminInboxChat({
                         }}
                         className={
                           replyCount > 0
-                            ? "inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#FF4103] rounded-full px-2 py-0.5 hover:opacity-85"
-                            : "text-[11px] text-[#9A9A9A] hover:text-[#FF4103] hover:underline"
+                            ? "inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#8B2E3C] rounded-full px-2 py-0.5 hover:opacity-85"
+                            : "text-[11px] text-[#9A9A9A] hover:text-[#8B2E3C] hover:underline"
                         }
                       >
                         {replyCount > 0 && <MessageCircle className="w-3 h-3" strokeWidth={2.25} />}
@@ -516,7 +516,7 @@ export default function AdminInboxChat({
                               setEditingAnswerKey(m.key);
                             }}
                             aria-label="수정"
-                            className="text-[#C4C4C4] hover:text-[#FF4103]"
+                            className="text-[#C4C4C4] hover:text-[#8B2E3C]"
                           >
                             <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
                           </button>
@@ -563,7 +563,7 @@ export default function AdminInboxChat({
                     type="button"
                     disabled={busy || replyEmpty}
                     onClick={sendReply}
-                    className="w-11 h-11 shrink-0 rounded-xl bg-[#FF4103] text-white flex items-center justify-center disabled:opacity-60"
+                    className="w-11 h-11 shrink-0 rounded-xl bg-[#8B2E3C] text-white flex items-center justify-center disabled:opacity-60"
                   >
                     <Send className="w-4.5 h-4.5" strokeWidth={2.25} />
                   </button>

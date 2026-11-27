@@ -23,10 +23,10 @@ export type CoffeeChat = {
 };
 
 const FILTER_INPUT =
-  "w-full min-w-0 border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
+  "w-full min-w-0 border border-black/15 rounded-md px-2 py-1 text-xs bg-white text-[#111111] placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#8B2E3C]";
 
 const FORM_INPUT =
-  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103] w-full";
+  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#8B2E3C] w-full";
 
 const STATUS_OPTIONS: { value: CoffeeChatStatus; label: string }[] = [
   { value: "booked", label: "예정" },
@@ -36,7 +36,7 @@ const STATUS_OPTIONS: { value: CoffeeChatStatus; label: string }[] = [
 ];
 
 const STATUS_DISPLAY: Record<CoffeeChatStatus, { label: string; cls: string }> = {
-  booked: { label: "예정", cls: "bg-[rgba(255,65,3,0.1)] text-[#FF4103]" },
+  booked: { label: "예정", cls: "bg-[rgba(139,46,60,0.1)] text-[#8B2E3C]" },
   completed: { label: "완료", cls: "bg-[rgba(16,185,129,0.12)] text-[#10B981]" },
   cancelled: { label: "취소됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" },
   declined: { label: "거절됨", cls: "bg-[#F4F4F2] text-[#9A9A9A]" },
@@ -111,7 +111,7 @@ function SortTh({ label, sortKey, sort, onToggle }: { label: string; sortKey: So
   const active = sort?.key === sortKey;
   return (
     <th className={TH}>
-      <button type="button" onClick={() => onToggle(sortKey)} className="inline-flex items-center gap-0.5 hover:text-[#FF4103]">
+      <button type="button" onClick={() => onToggle(sortKey)} className="inline-flex items-center gap-0.5 hover:text-[#8B2E3C]">
         {label}
         {active ? (
           sort!.dir === "asc" ? (
@@ -319,14 +319,14 @@ export default function CoffeeChatsTab({
                 setFilters(EMPTY_FILTERS);
                 setSort(null);
               }}
-              className="text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] px-2 py-1"
+              className="text-xs font-semibold text-[#9A9A9A] hover:text-[#8B2E3C] px-2 py-1"
             >
               필터 초기화
             </button>
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-[#FF4103] text-white rounded-lg px-3 py-2"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-[#8B2E3C] text-white rounded-lg px-3 py-2"
             >
               <Plus className="w-4 h-4" strokeWidth={2.25} />
               수동입력
@@ -335,7 +335,7 @@ export default function CoffeeChatsTab({
               type="button"
               onClick={exportCsv}
               disabled={list.length === 0}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#8B2E3C] disabled:opacity-50"
             >
               <Download className="w-4 h-4" strokeWidth={2.25} />
               CSV 내보내기
@@ -437,12 +437,12 @@ export default function CoffeeChatsTab({
                     <td className={`${td} whitespace-nowrap overflow-hidden`} title={c.name}>
                       <span className="inline-flex items-center gap-1 max-w-full">
                         <span className="truncate font-bold text-[#111111]">{c.name || "-"}</span>
-                        {c.confirmed && <Check className="w-3 h-3 text-[#FF4103] shrink-0" strokeWidth={3} />}
+                        {c.confirmed && <Check className="w-3 h-3 text-[#8B2E3C] shrink-0" strokeWidth={3} />}
                       </span>
                     </td>
                     <td className={`${td} truncate`} title={c.email}>
                       {c.email ? (
-                        <a href={`mailto:${c.email}`} className="hover:text-[#FF4103] hover:underline">
+                        <a href={`mailto:${c.email}`} className="hover:text-[#8B2E3C] hover:underline">
                           {c.email}
                         </a>
                       ) : (
@@ -464,7 +464,7 @@ export default function CoffeeChatsTab({
                       <select
                         value={c.status}
                         onChange={(e) => updateStatus(c, e.target.value as CoffeeChatStatus)}
-                        className={`w-full text-[10.5px] font-semibold rounded-full pl-2 pr-1 py-0.5 border-0 focus:outline-none focus:ring-2 focus:ring-[#FF4103] ${STATUS_DISPLAY[c.status].cls}`}
+                        className={`w-full text-[10.5px] font-semibold rounded-full pl-2 pr-1 py-0.5 border-0 focus:outline-none focus:ring-2 focus:ring-[#8B2E3C] ${STATUS_DISPLAY[c.status].cls}`}
                       >
                         {STATUS_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>
@@ -479,7 +479,7 @@ export default function CoffeeChatsTab({
                         onClick={() => updateConfirmed(c, !c.confirmed)}
                         aria-label="확인"
                         className={`w-5 h-5 rounded-md border flex items-center justify-center ${
-                          c.confirmed ? "bg-[#FF4103] border-[#FF4103]" : "border-black/20 hover:border-[#FF4103]"
+                          c.confirmed ? "bg-[#8B2E3C] border-[#8B2E3C]" : "border-black/20 hover:border-[#8B2E3C]"
                         }`}
                       >
                         {c.confirmed && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
@@ -491,11 +491,11 @@ export default function CoffeeChatsTab({
                           type="button"
                           onClick={() => setNotesFor(c)}
                           aria-label="비고"
-                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
                         >
                           <FileText className="w-3.5 h-3.5" strokeWidth={2} />
                           {c.notes && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#FF4103] rounded-full flex items-center justify-center">
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#8B2E3C] rounded-full flex items-center justify-center">
                               <Check className="w-2 h-2 text-white" strokeWidth={3.5} />
                             </span>
                           )}
@@ -504,11 +504,11 @@ export default function CoffeeChatsTab({
                           type="button"
                           onClick={() => setMemoFor(c)}
                           aria-label="메모"
-                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                          className="relative p-1.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
                         >
                           <StickyNote className="w-3.5 h-3.5" strokeWidth={2} />
                           {c.memo && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#FF4103] rounded-full flex items-center justify-center">
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#8B2E3C] rounded-full flex items-center justify-center">
                               <Check className="w-2 h-2 text-white" strokeWidth={3.5} />
                             </span>
                           )}
@@ -517,7 +517,7 @@ export default function CoffeeChatsTab({
                           type="button"
                           onClick={() => setEditing(c)}
                           aria-label="편집"
-                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
                         >
                           <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
                         </button>
@@ -633,7 +633,7 @@ function CoffeeChatCalendar({
           type="button"
           onClick={() => setViewDate(new Date(year, month - 1, 1))}
           aria-label="이전 달"
-          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[#F4F4F2]"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={2.25} />
         </button>
@@ -644,7 +644,7 @@ function CoffeeChatCalendar({
           type="button"
           onClick={() => setViewDate(new Date(year, month + 1, 1))}
           aria-label="다음 달"
-          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[#F4F4F2]"
+          className="p-1.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[#F4F4F2]"
         >
           <ChevronRight className="w-5 h-5" strokeWidth={2.25} />
         </button>
@@ -667,14 +667,14 @@ function CoffeeChatCalendar({
                 onClick={() => onSelectDate(isSelected ? null : key)}
                 className={`w-full aspect-square rounded-lg text-sm flex flex-col items-center justify-center gap-0.5 ${
                   isSelected
-                    ? "bg-[#FF4103] text-white"
+                    ? "bg-[#8B2E3C] text-white"
                     : events.length > 0
-                      ? "bg-[rgba(255,65,3,0.08)] text-[#111111] hover:bg-[rgba(255,65,3,0.15)]"
+                      ? "bg-[rgba(139,46,60,0.08)] text-[#111111] hover:bg-[rgba(139,46,60,0.15)]"
                       : "text-[#9A9A9A] hover:bg-[#F4F4F2]"
                 }`}
               >
                 <span>{d}</span>
-                {events.length > 0 && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-[#FF4103]"}`} />}
+                {events.length > 0 && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-[#8B2E3C]"}`} />}
               </button>
               {events.length > 0 && (
                 <div className="hidden group-hover:block absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-[#111111] text-white text-[11px] rounded-lg px-3 py-2 shadow-lg whitespace-nowrap pointer-events-none">
@@ -690,7 +690,7 @@ function CoffeeChatCalendar({
         })}
       </div>
       {selectedDate && (
-        <button type="button" onClick={() => onSelectDate(null)} className="mt-3 text-xs text-[#9A9A9A] hover:text-[#FF4103] w-full text-center">
+        <button type="button" onClick={() => onSelectDate(null)} className="mt-3 text-xs text-[#9A9A9A] hover:text-[#8B2E3C] w-full text-center">
           선택 해제 · 전체 보기
         </button>
       )}
@@ -813,7 +813,7 @@ function AddDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (c: Cof
             type="button"
             disabled={busy}
             onClick={submit}
-            className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 bg-[#8B2E3C] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             <Plus className="w-4 h-4" strokeWidth={2.25} />
             {busy ? "추가하는 중…" : "추가"}
@@ -919,7 +919,7 @@ function EditDialog({ coffeeChat, onClose, onSaved }: { coffeeChat: CoffeeChat; 
             type="button"
             disabled={busy}
             onClick={save}
-            className="bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+            className="bg-[#8B2E3C] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             {busy ? "저장하는 중…" : "저장"}
           </button>
@@ -994,7 +994,7 @@ function QuickNoteDialog({
             type="button"
             disabled={busy}
             onClick={save}
-            className="bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+            className="bg-[#8B2E3C] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             {busy ? "저장하는 중…" : "저장"}
           </button>

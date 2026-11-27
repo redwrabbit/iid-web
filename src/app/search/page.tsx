@@ -141,12 +141,12 @@ export default function SearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="이드의 글/영상에 대해 물어보세요… (예: 스톡옵션은 왜 나눠갖는 거라고 했나요?)"
-              className="w-full border border-black/15 rounded-full pl-11 pr-5 py-3 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]"
+              className="w-full border border-black/15 rounded-full pl-11 pr-5 py-3 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#8B2E3C]"
             />
           </div>
           <button
             type="submit"
-            className="w-12 h-12 shrink-0 rounded-full bg-[#FF4103] text-white flex items-center justify-center"
+            className="w-12 h-12 shrink-0 rounded-full bg-[#8B2E3C] text-white flex items-center justify-center"
             aria-label="검색"
           >
             <ArrowRight className="w-5 h-5" strokeWidth={2.25} />
@@ -163,7 +163,7 @@ export default function SearchPage() {
           <button
             type="button"
             onClick={() => setMobileView("results")}
-            className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#FF4103]"
+            className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#8B2E3C]"
           >
             <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
             결과로
@@ -178,7 +178,7 @@ export default function SearchPage() {
                 onClick={() => selectCategory(c)}
                 className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left border-l-2 ${
                   active
-                    ? "border-l-[#FF4103] bg-[rgba(255,65,3,0.08)] text-[#FF4103] font-semibold"
+                    ? "border-l-[#8B2E3C] bg-[rgba(139,46,60,0.08)] text-[#8B2E3C] font-semibold"
                     : "border-l-transparent text-[#555555] hover:bg-[#F4F4F2] hover:text-[#111111]"
                 }`}
               >
@@ -196,7 +196,7 @@ export default function SearchPage() {
             <button
               type="button"
               onClick={() => setMobileView("category")}
-              className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#FF4103]"
+              className="lg:hidden w-full flex items-center gap-1 px-4 pb-2 text-xs text-[#6B6B6B] hover:text-[#8B2E3C]"
             >
               <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
               카테고리
@@ -212,7 +212,7 @@ export default function SearchPage() {
               }}
               className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-sm text-left border-l-2 ${
                 subcategory === ""
-                  ? "border-l-[#FF4103] bg-[rgba(255,65,3,0.08)] text-[#FF4103] font-semibold"
+                  ? "border-l-[#8B2E3C] bg-[rgba(139,46,60,0.08)] text-[#8B2E3C] font-semibold"
                   : "border-l-transparent text-[#555555] hover:bg-[#F4F4F2] hover:text-[#111111]"
               }`}
             >
@@ -235,7 +235,7 @@ export default function SearchPage() {
                   }}
                   className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-sm text-left border-l-2 ${
                     sActive
-                      ? "border-l-[#FF4103] bg-[rgba(255,65,3,0.08)] text-[#FF4103] font-semibold"
+                      ? "border-l-[#8B2E3C] bg-[rgba(139,46,60,0.08)] text-[#8B2E3C] font-semibold"
                       : "border-l-transparent text-[#555555] hover:bg-[#F4F4F2] hover:text-[#111111]"
                   }`}
                 >
@@ -252,7 +252,7 @@ export default function SearchPage() {
             <button
               type="button"
               onClick={() => setMobileView("category")}
-              className="lg:hidden mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] border border-black/15 rounded-full px-3 py-1.5 hover:border-[#FF4103] hover:text-[#FF4103]"
+              className="lg:hidden mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#555555] border border-black/15 rounded-full px-3 py-1.5 hover:border-[#8B2E3C] hover:text-[#8B2E3C]"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
               {category}
@@ -288,7 +288,7 @@ export default function SearchPage() {
                             type="button"
                             onClick={() => setSummary({ post: r.post, qTokens: r.qTokens })}
                             aria-label="요약 보기"
-                            className="px-3 py-2 rounded-md text-xs font-semibold text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                            className="px-3 py-2 rounded-md text-xs font-semibold text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
                           >
                             요약
                           </button>
@@ -297,7 +297,7 @@ export default function SearchPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="원문으로 이동"
-                            className="p-2.5 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                            className="p-2.5 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
                           >
                             <ExternalLink className="w-5 h-5" strokeWidth={2} />
                           </a>
@@ -319,7 +319,7 @@ export default function SearchPage() {
         >
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#FF4103]">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B2E3C]">
                 <SourceIcon source={summary.post.source} />
                 {summary.post.source} · {formatDate(summary.post.date)} · {summary.post.category}
               </span>
@@ -343,7 +343,7 @@ export default function SearchPage() {
               href={summary.post.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#FF4103] hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B2E3C] hover:underline"
             >
               원문 보러가기
               <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.25} />

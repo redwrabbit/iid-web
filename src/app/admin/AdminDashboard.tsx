@@ -78,7 +78,7 @@ export default function AdminDashboard({
             type="button"
             onClick={() => setTab(t.k as typeof tab)}
             className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-full ${
-              tab === t.k ? "bg-[#FF4103] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
+              tab === t.k ? "bg-[#8B2E3C] text-white" : "bg-transparent text-[#9A9A9A] hover:text-[#111111]"
             }`}
           >
             <t.Icon className="w-4 h-4" strokeWidth={2.25} />
@@ -91,15 +91,15 @@ export default function AdminDashboard({
         <div className="flex flex-col gap-4 max-w-xl mx-auto">
           <Link
             href="/ask"
-            className="flex items-center justify-between gap-3 bg-[rgba(255,65,3,0.06)] border border-[rgba(255,65,3,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(255,65,3,0.1)]"
+            className="flex items-center justify-between gap-3 bg-[rgba(139,46,60,0.06)] border border-[rgba(139,46,60,0.25)] rounded-xl px-4 py-3 hover:bg-[rgba(139,46,60,0.1)]"
           >
             <span className="text-sm font-semibold text-[#111111]">
               질문함은 이드에게 질문하기 탭에서 확인·답변해요
               {pendingCount > 0 && (
-                <span className="ml-2 text-[11px] font-bold text-white bg-[#FF4103] rounded-full px-2 py-0.5">답변 대기 {pendingCount}</span>
+                <span className="ml-2 text-[11px] font-bold text-white bg-[#8B2E3C] rounded-full px-2 py-0.5">답변 대기 {pendingCount}</span>
               )}
             </span>
-            <ArrowRight className="w-4 h-4 text-[#FF4103] shrink-0" strokeWidth={2.25} />
+            <ArrowRight className="w-4 h-4 text-[#8B2E3C] shrink-0" strokeWidth={2.25} />
           </Link>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -128,7 +128,7 @@ export default function AdminDashboard({
                       <span className="text-xs font-semibold text-[#111111]">{profileMap.get(q.user_id)?.name || "익명"}</span>
                       <span className="text-[11px] text-[#9A9A9A]">{fmt(q.created_at)}</span>
                       {!q.answer && (
-                        <span className="text-[10px] font-bold text-white bg-[#FF4103] rounded-full px-1.5 py-0.5 shrink-0">대기</span>
+                        <span className="text-[10px] font-bold text-white bg-[#8B2E3C] rounded-full px-1.5 py-0.5 shrink-0">대기</span>
                       )}
                     </div>
                     <p className="text-sm text-[#4A4A4A] truncate">{q.question}</p>
@@ -177,7 +177,7 @@ export default function AdminDashboard({
 }
 
 const INPUT =
-  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#FF4103]";
+  "border border-black/15 rounded-lg px-3 py-2 text-sm bg-white text-[#111111] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#8B2E3C]";
 
 function csvCell(v: string | null) {
   const t = (v ?? "").replace(/"/g, '""');
@@ -228,7 +228,7 @@ function MembersTab({ profiles }: { profiles: Profile[] }) {
           type="button"
           onClick={exportCsv}
           disabled={list.length === 0}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#FF4103] disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold border border-black/15 rounded-lg px-3 py-2 text-[#333333] hover:text-[#8B2E3C] disabled:opacity-50"
         >
           <Download className="w-4 h-4" strokeWidth={2.25} />
           CSV 내보내기
@@ -379,7 +379,7 @@ function ResourcesTab({
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목 (선택)" className={INPUT} />
         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="원문 링크 (예: https://...)" className={INPUT} />
         <p className="text-center text-xs text-[#B0B0B0]">또는</p>
-        <label className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#555555] cursor-pointer hover:text-[#FF4103] border border-dashed border-black/20 rounded-lg px-3 py-2.5 justify-center">
+        <label className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#555555] cursor-pointer hover:text-[#8B2E3C] border border-dashed border-black/20 rounded-lg px-3 py-2.5 justify-center">
           <FileUp className="w-4 h-4" strokeWidth={2.25} />
           {file ? file.name : "워드(.docx) 또는 PDF 파일 선택"}
           <input ref={fileInputRef} type="file" accept=".pdf,.docx" onChange={handleFile} className="hidden" />
@@ -398,7 +398,7 @@ function ResourcesTab({
             type="button"
             disabled={busy}
             onClick={submit}
-            className="inline-flex items-center gap-1.5 bg-[#FF4103] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 bg-[#8B2E3C] text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
           >
             <Plus className="w-4 h-4" strokeWidth={2.25} />
             {busy ? "추가하는 중…" : "자료 추가"}
@@ -423,14 +423,14 @@ function ResourcesTab({
                   {r.subcategory ? ` · ${r.subcategory}` : ""}
                 </span>
                 {!r.summary && (
-                  <span className="text-[10.5px] font-bold text-[#FF4103] px-2 py-0.5 rounded-full bg-[rgba(255,65,3,0.08)] border border-[rgba(255,65,3,0.25)]">
+                  <span className="text-[10.5px] font-bold text-[#8B2E3C] px-2 py-0.5 rounded-full bg-[rgba(139,46,60,0.08)] border border-[rgba(139,46,60,0.25)]">
                     요약 없음
                   </span>
                 )}
               </div>
               <p className="text-xs text-[#6B6B6B] line-clamp-2">{r.summary || r.content}</p>
               {r.url && (
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#FF4103] hover:underline break-all">
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#8B2E3C] hover:underline break-all">
                   {r.url}
                 </a>
               )}
@@ -440,7 +440,7 @@ function ResourcesTab({
                 type="button"
                 onClick={() => setEditing(r)}
                 aria-label="편집"
-                className="p-2 rounded-md text-[#9A9A9A] hover:text-[#FF4103] hover:bg-[rgba(255,65,3,0.08)]"
+                className="p-2 rounded-md text-[#9A9A9A] hover:text-[#8B2E3C] hover:bg-[rgba(139,46,60,0.08)]"
               >
                 <Pencil className="w-4 h-4" strokeWidth={2} />
               </button>
@@ -561,7 +561,7 @@ function EditDialog({ resource, onClose, onSaved }: { resource: Resource; onClos
           <button type="button" onClick={onClose} className="text-sm font-semibold px-4 py-2 rounded-lg border border-black/15 text-[#555555]">
             취소
           </button>
-          <button type="button" disabled={busy} onClick={save} className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#FF4103] text-white disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={save} className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#8B2E3C] text-white disabled:opacity-60">
             {busy ? "저장하는 중…" : "저장"}
           </button>
         </div>
