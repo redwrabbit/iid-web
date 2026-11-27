@@ -5,6 +5,7 @@ import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
 import "./site.css";
 import SiteHeader from "@/components/site/SiteHeader";
+import ReviewMode from "@/components/review/ReviewMode";
 
 const notoSerif = Noto_Serif_KR({
   variable: "--font-serif",
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="h-full flex flex-col bg-white text-[#111111] font-sans antialiased">
         <SiteHeader />
         <main className="flex-1 flex flex-col min-h-0 overflow-auto">{children}</main>
+        <ReviewMode />
       </body>
     </html>
   );
