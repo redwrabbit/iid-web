@@ -26,7 +26,7 @@ export default function Home() {
             <div className="home__author">
               <Image
                 className="home__author-photo"
-                src="/profile.png"
+                src="/profile.jpg"
                 alt="김동현(이드)"
                 width={220}
                 height={220}
