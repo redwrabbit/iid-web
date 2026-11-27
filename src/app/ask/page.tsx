@@ -20,7 +20,7 @@ export default async function AskPage() {
       <div className="site-root site-flex">
         <div className="gate">
           <div className="gate__inner">
-            <Image src="/iid-character.png" alt="이드(iid) 캐릭터" width={96} height={96} className="gate__mascot" />
+            <Image src="/iid-character.png" alt="이드(iid) 캐릭터" width={180} height={180} className="gate__mascot" />
             <p className="gate__bubble">궁금한 게 있으면 편하게 물어보세요. 로그인하면 바로 질문할 수 있어요.</p>
             <Link href="/login" className="go go--orange">
               로그인 / 가입
