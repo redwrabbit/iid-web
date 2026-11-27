@@ -61,6 +61,11 @@ export default function AdminDashboard({
   const [coffeeChats, setCoffeeChats] = useState(initialCoffeeChats);
 
   const pendingCount = questions.filter((q) => !q.answer).length;
+  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  const recentQuestions = useMemo(
+    () => [...questions].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 6),
+    [questions]
+  );
 
   return (
     <div className="w-full px-4 sm:px-6 py-6 flex-1">
@@ -108,6 +113,31 @@ export default function AdminDashboard({
               </div>
             ))}
           </div>
+
+          {recentQuestions.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs font-semibold text-[#9A9A9A] px-1">최근 질문</div>
+              {recentQuestions.map((q) => (
+                <Link
+                  key={q.id}
+                  href="/ask"
+                  className="flex items-start justify-between gap-3 bg-white border border-black/8 rounded-xl px-4 py-3 hover:border-black/20"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-[#111111]">{profileMap.get(q.user_id)?.name || "익명"}</span>
+                      <span className="text-[11px] text-[#9A9A9A]">{fmt(q.created_at)}</span>
+                      {!q.answer && (
+                        <span className="text-[10px] font-bold text-white bg-[#FF4103] rounded-full px-1.5 py-0.5 shrink-0">대기</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-[#4A4A4A] truncate">{q.question}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[#9A9A9A] shrink-0 mt-0.5" strokeWidth={2.25} />
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
