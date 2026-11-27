@@ -13,7 +13,7 @@ export default function Home() {
       <div className="home">
         <div className="wrap home__grid">
           <div className="home__main">
-            <h1>조직과 사람에<br />대한 의사결정을<br /><em>도와줍니다</em></h1>
+            <h1>조직과 사람에 대한<br />의사결정을 <em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
             <ul className="home__quotes">
               <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
@@ -30,6 +30,7 @@ export default function Home() {
                 alt="김동현(이드)"
                 width={220}
                 height={220}
+                quality={100}
               />
               <div>
                 <p className="home__author-name">김동현 · 이드</p>
