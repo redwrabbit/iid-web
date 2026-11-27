@@ -160,11 +160,12 @@ export default function ReviewMode() {
     };
   }, [active]);
 
-  // 실제 클릭/네비게이션은 항상 막는다(우리 오버레이 UI는 제외)
+  // 실제 클릭/네비게이션은 막되, 상단 메뉴(.top: 탭/로그인/햄버거)는 그대로 눌리게 둔다
+  // — 그래야 피드백 모드를 켠 채로 다른 탭으로 이동할 수 있다
   useEffect(() => {
     if (!active) return;
     function onClick(e: MouseEvent) {
-      if (e.target instanceof HTMLElement && e.target.closest("[data-review-ui]")) return;
+      if (e.target instanceof HTMLElement && e.target.closest("[data-review-ui], .top")) return;
       e.preventDefault();
       e.stopPropagation();
     }
@@ -177,7 +178,7 @@ export default function ReviewMode() {
     if (!active) return;
 
     function isReviewUi(t: EventTarget | null) {
-      return t instanceof HTMLElement && !!t.closest("[data-review-ui]");
+      return t instanceof HTMLElement && !!t.closest("[data-review-ui], .top");
     }
 
     function onPointerDown(e: PointerEvent) {
@@ -368,7 +369,7 @@ export default function ReviewMode() {
         className="flex items-center gap-2 bg-[#111111] text-white rounded-full pl-4 pr-2 py-2 shadow-2xl text-sm whitespace-nowrap"
       >
         <span className="font-semibold">피드백 모드</span>
-        <span className="text-white/50 hidden sm:inline">· 클릭(점) 또는 드래그(영역)로 메모를 남기세요</span>
+        <span className="text-white/50 hidden sm:inline">· 클릭(점) 또는 드래그(영역)로 메모를 남기세요 · 상단 메뉴는 그대로 눌려요</span>
         <span className="text-white/70 text-xs ml-1">{pins.length}개</span>
         <button type="button" onClick={clearPage} className="ml-1 bg-white/10 hover:bg-white/20 rounded-full px-3 py-1 font-semibold">
           비우기
