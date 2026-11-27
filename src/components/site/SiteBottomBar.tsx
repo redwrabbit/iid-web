@@ -31,12 +31,12 @@ function YoutubeIcon() {
   );
 }
 
-// 흰 사각 배지 위에 파란 "in" 글자 — 참고 이미지의 링크드인 아이콘 그대로.
+// 흰 사각 배지 위에 파란 "in" 글자 — 다른 아이콘들과 비슷한 크기로 꽉 채운다.
 function LinkedinIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="5" y="5" width="14" height="14" rx="3" fill="#ffffff" />
-      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="700" fontFamily="Arial, Helvetica, sans-serif" letterSpacing="-0.5" fill="#007BB6">
+      <rect x="1" y="1" width="22" height="22" rx="5" fill="#ffffff" />
+      <text x="12" y="17" textAnchor="middle" fontSize="15" fontWeight="700" fontFamily="Arial, Helvetica, sans-serif" letterSpacing="-0.5" fill="#007BB6">
         in
       </text>
     </svg>
