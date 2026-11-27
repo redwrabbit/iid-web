@@ -27,7 +27,7 @@ export default async function Page() {
       <div className="panel">
         <div className="wrap page-head">
           <h1 className="h1-sm">자문 / 컨설팅</h1>
-          <p className="lead">조직의 규모 · 상황 · 니즈에 맞춰 HR 자문과 컨설팅을 설계합니다. 궁금한 부분을 열어 보세요.</p>
+          <p className="lead lead--wide">조직의 규모 · 상황 · 니즈에 맞춰 HR 자문과 컨설팅을 설계합니다. 궁금한 부분을 열어 보세요.</p>
           <nav className="anav" aria-label="이 페이지의 내용">
             <a href="#orgs">함께하는 조직</a>
             <a href="#services">서비스 · 플랜</a>
@@ -117,10 +117,10 @@ export default async function Page() {
               {mainPlans.map((p) => (
                 <tr key={p.name} className={p.dark ? "is-key" : undefined}>
                   <th scope="row">
-                    {p.name}
+                    <span className="ptable__chip">{p.name}</span>
                     {p.sub && <small>{p.sub}</small>}
                   </th>
-                  <td>{p.body}</td>
+                  <td><span className="ptable__chip">{p.body}</span></td>
                   <td>{p.period}</td>
                   <td className="ptable__price">별도 문의</td>
                 </tr>
