@@ -37,6 +37,7 @@ export default function Home() {
               </div>
             </div>
             <ul className="career home__career">
+              <li className="muted">서울대학교 경영학과 졸업</li>
               <li><b>現</b> 티오더 HR Director</li>
               <li><b>前</b> 휴이노 HR 리드</li>
               <li><b>前</b> 클래스101 HR Head</li>
@@ -44,7 +45,6 @@ export default function Home() {
               <li><b>前</b> 토스 People Operation Manager</li>
               <li><b>前</b> 현대자동차그룹 기획조정실 인사실</li>
               <li><b>前</b> 현대모비스 글로벌HR기획팀</li>
-              <li className="muted">서울대학교 경영학과 졸업</li>
             </ul>
           </div>
         </div>
