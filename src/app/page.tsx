@@ -15,13 +15,21 @@ export default function Home() {
           <div className="home__main">
             <h1>조직과 사람에<br />대한 의사결정을<br /><em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
+            <ul className="home__quotes">
+              <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
+              <li>“지금 뭘 바꿔야 할지 모르겠다. 감이 없다.”</li>
+              <li>“운영은 하고 있는데… 잘하고 있는 걸까?”</li>
+              <li>“잘 뽑은 것 같은데, 왜 자꾸 떠나는 걸까?”</li>
+            </ul>
+          </div>
+          <div className="home__side">
             <div className="home__author">
               <Image
                 className="home__author-photo"
                 src="/profile.png"
                 alt="김동현(이드)"
-                width={112}
-                height={112}
+                width={160}
+                height={160}
               />
               <div>
                 <p className="home__author-name">김동현 · 이드</p>
@@ -38,18 +46,6 @@ export default function Home() {
               <li><b>前</b> 현대모비스 글로벌HR기획팀</li>
               <li className="muted">서울대학교 경영학과 졸업</li>
             </ul>
-          </div>
-          <div className="home__side">
-            <div className="home__id">
-              <Image className="home__mark" src="/iid-character.png" alt="이드(iid) 캐릭터" width={600} height={600} priority />
-              <span className="home__brand">HR Problem Solver</span>
-            </div>
-            <ul className="home__quotes">
-            <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
-            <li>“지금 뭘 바꿔야 할지 모르겠다. 감이 없다.”</li>
-            <li>“운영은 하고 있는데… 잘하고 있는 걸까?”</li>
-            <li>“잘 뽑은 것 같은데, 왜 자꾸 떠나는 걸까?”</li>
-          </ul>
           </div>
         </div>
 
