@@ -565,6 +565,10 @@ h1{letter-spacing:-.01em}
   /* 클릭하면 열리는 박스 */
   .ob-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
   .ob{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:22px;overflow:clip}
+  /* 여섯 상황이 똑같은 카드 반복으로 보이지 않도록, 홈 말풍선처럼 꼬리 방향을 번갈아 둔다 */
+  .ob-grid{grid-template-columns:minmax(0,1fr)}
+  .ob-grid .ob:nth-child(odd){border-radius:26px 26px 26px 6px}
+  .ob-grid .ob:nth-child(even){border-radius:26px 26px 6px 26px}
   .ob>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;list-style:none;padding:18px 22px;min-height:56px;font:400 clamp(17px,1.9vw,20px)/1.4 var(--serif);touch-action:manipulation;
     transition:background-color var(--dur-hover) var(--ease-out)}
   .ob>summary::-webkit-details-marker{display:none}
