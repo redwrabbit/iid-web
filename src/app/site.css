@@ -62,7 +62,7 @@ h1 em{font-style:normal;color:var(--ink)}
 .h2{text-wrap:balance;font:400 clamp(24px,3.2vw,34px)/1.35 var(--serif);letter-spacing:-.02em;margin:0 0 14px}
 .h2--sm{font-size:22px}
 .h2--gap{margin-top:64px}
-.lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:34em;margin:0 0 36px}
+.lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:34em;margin:0 0 36px;font-weight:600}
 .hero__cta{display:flex;flex-wrap:wrap;gap:8px 32px;align-items:center}
 
 .worries{padding-bottom:88px}
@@ -394,7 +394,7 @@ h1{letter-spacing:-.01em}
 .home[hidden]{display:none}
 .home__grid{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:center;padding-top:24px;padding-bottom:24px}
 .home h1{color:var(--ink);font-size:clamp(28px,min(5.2vw,8vh),56px);margin-bottom:22px}
-.home .lead{color:var(--muted);max-width:38em;margin-bottom:32px;font-size:clamp(14px,min(1.4vw,2vh),16px)}
+.home .lead{color:var(--muted);max-width:640px;margin-bottom:32px;font-size:clamp(13px,min(1.2vw,1.8vh),14px)}
 .home__go{display:flex;flex-wrap:wrap;gap:12px}
 .go{display:inline-flex;align-items:center;gap:10px;min-height:56px;padding:0 28px;border-radius:999px;font:400 20px var(--serif);text-decoration:none;white-space:nowrap;touch-action:manipulation;border:2px solid var(--on-dark);
   transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
@@ -552,7 +552,7 @@ h1{letter-spacing:-.01em}
   .home__quotes li{background:var(--orange-soft);color:var(--ink);border-color:var(--line)}
 
   .anav{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  .anav a{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);text-decoration:none;font:400 15px var(--serif);touch-action:manipulation;
+  .anav a{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);text-decoration:none;font:700 15px var(--serif);touch-action:manipulation;
     transition:background-color var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out)}
   .anav a:active{transform:scale(.97)}
   @media (hover:hover) and (pointer:fine){.anav a:hover{background:var(--orange-soft)}}
@@ -654,7 +654,7 @@ main{scroll-behavior:smooth}
   .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap}
 
   /* 오른쪽(사진+이력)은 왼쪽 칼럼과 같은 높이 안에서 가운데로 */
-  .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:center;gap:40px}
+  .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:40px}
 
   @media (max-width:760px){
     .home__grid{grid-template-columns:minmax(0,1fr);align-items:start;padding-top:64px;padding-bottom:64px;gap:40px}
@@ -718,7 +718,7 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
 
   /* 경험과 전문 영역: 흰 바탕 + 검정 라인, 안의 라벨/태그는 오렌지 박스로 */
   .exp{display:grid;gap:8px;padding:14px 18px;border:2px solid var(--ink);border-radius:18px;background:var(--paper)}
-  .exp__label{display:inline-block;margin:0;padding:3px 12px;border-radius:8px;background:var(--orange);font:700 13px var(--serif);color:var(--ink)}
+  .exp__label{margin:0;font:700 14px var(--serif);color:var(--accent-ink)}
   .exp__text{margin:0;font-size:14.5px;line-height:1.6;font-weight:600}
   .exp__chips{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px}
   .exp__chips li{padding:3px 14px;border:0;border-radius:999px;background:var(--orange);color:var(--ink);font:700 13.5px var(--serif);white-space:nowrap}
@@ -742,7 +742,7 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
   .ptable tbody tr:first-child th,.ptable tbody tr:first-child td{border-top:0}
   .ptable thead+tbody tr:first-child th,.ptable thead+tbody tr:first-child td{border-top:0}
   .ptable tbody th{width:27%;font:700 clamp(17px,1.7vw,20px)/1.3 var(--serif)}
-  .ptable small{display:block;margin-top:3px;font:500 12px/1.5 var(--sans);color:var(--muted)}
+  .ptable small{display:inline;margin-left:6px;font:500 12px/1.5 var(--sans);color:var(--ink);opacity:.65}
   .ptable td:nth-child(3){white-space:nowrap}
   .ptable__price{white-space:nowrap;font-weight:700}
   /* 플랜 제목(이름)과 구성 내용만 오렌지 박스로, 표 전체는 흰 배경 유지 */
@@ -751,13 +751,13 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
   .ptable--add{margin-top:24px}
 
   /* 차별성: 같은 톤의 카드, 네 원칙 박스 높이도 맞춘다 */
-  .proc{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(4,max-content);justify-content:flex-start;gap:10px}
-  .proc li{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:var(--orange-soft);color:var(--ink)}
+  .proc{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(4,max-content);justify-content:space-between;gap:10px}
+  .proc li{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink)}
   .proc li+li::before{content:"→" / "";position:absolute;left:-12px;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font:400 13px var(--serif)}
   .proc__n{background:var(--orange);color:var(--ink)}
   .grp{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-pop);padding:18px 18px 14px;min-height:320px}
   .grp h4{color:var(--ink);font-weight:700}
-  .grp__tag{display:inline-block;padding:3px 12px;border-radius:8px;background:var(--orange);color:var(--ink);font-weight:700}
+  .grp__tag{color:var(--accent-ink);font-weight:700}
   .ob--in{border-color:var(--line);background:var(--paper)}
 
   /* 이드 소개 위: 왼쪽 소개와 오른쪽 약력 높이 맞춤 */
@@ -765,7 +765,7 @@ a.home__next-item{flex:none;display:inline-flex;align-items:center;justify-conte
   .ab{border:1px solid var(--line);border-radius:22px;background:var(--paper);box-shadow:var(--shadow-pop)}
   .ab--intro{padding:34px 36px}
   .ab--intro h1{margin:0 0 16px}
-  .ab--intro p{margin:0;font-size:clamp(16px,1.7vw,18px);line-height:1.9;color:var(--ink)}
+  .ab--intro p{margin:0;font-size:clamp(16px,1.7vw,18px);line-height:1.9;color:var(--ink);font-weight:600}
   .ab--career{display:flex;padding:10px 30px}
   .ab .career{display:grid;grid-auto-rows:1fr;width:100%;margin:0;padding:0;list-style:none}
   .ab .career li{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:16px}
