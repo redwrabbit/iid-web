@@ -15,6 +15,19 @@ export default function Home() {
           <div className="home__main">
             <h1>조직과 사람에<br />대한 의사결정을<br /><em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
+            <div className="home__author">
+              <Image
+                className="home__author-photo"
+                src="/profile.png"
+                alt="김동현(이드)"
+                width={112}
+                height={112}
+              />
+              <div>
+                <p className="home__author-name">김동현 · 이드</p>
+                <p className="home__author-title">HR Problem Solver</p>
+              </div>
+            </div>
             <ul className="career home__career">
               <li><b>現</b> 티오더 HR Director</li>
               <li><b>前</b> 휴이노 HR 리드</li>
