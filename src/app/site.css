@@ -405,20 +405,12 @@ h1{letter-spacing:-.01em}
 .go--red{background:var(--accent);color:var(--on-dark-hover);border-color:var(--accent)}
 @media (hover:hover) and (pointer:fine){.go:hover{background:var(--on-dark-hover);color:var(--ink);border-color:var(--on-dark-hover)}}
 
-.home__quotes{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-.home__quotes li{background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow-pop);padding:14px 24px;border-radius:18px;font:700 clamp(18px,min(1.9vw,2.6vh),21px)/1.4 var(--serif);max-width:100%}
+.home__quotes{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home__quotes li{background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow-pop);padding:14px 18px;border-radius:18px;font:700 clamp(16px,min(1.7vw,2.3vh),19px)/1.4 var(--serif);max-width:100%}
 
-.home__feature-quote{margin:auto 0 0;padding:20px 26px;border-left:4px solid var(--orange)}
+.home__feature-quote{margin:auto 0 20px;padding:20px 26px;border-left:4px solid var(--orange)}
 .home__feature-quote p{margin:0 0 8px;font:600 clamp(16px,1.5vw,19px)/1.5 var(--serif);color:var(--ink)}
 .home__feature-quote cite{display:block;font-style:normal;font-size:13px;color:var(--muted)}
-
-.home__stats{list-style:none;margin:auto 0 0;padding:20px 0 0;display:flex;gap:0;border-top:2px solid var(--ink)}
-.home__stats li{flex:1;padding:0 20px;display:flex;flex-direction:column;gap:4px}
-.home__stats li+li{border-left:1px solid var(--line)}
-.home__stats li:first-child{padding-left:0}
-.home__stats strong{font:700 clamp(22px,2.4vw,28px) var(--serif);color:var(--accent-ink)}
-.home__stats span{font:600 13px/1.4 var(--sans);color:var(--muted)}
-
 
 .foot__h{font-size:clamp(22px,2.6vw,28px);margin-bottom:6px}
 .foot__qa{color:var(--orange);text-underline-offset:4px}
@@ -661,9 +653,9 @@ main{scroll-behavior:smooth}
   /* 상단 메뉴바와의 간격을 늘리고, 화면이 넉넉할 땐 위아래 남는 공간에서 가운데로 */
   .home__grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px;align-items:stretch;padding-top:128px;padding-bottom:128px;margin-top:auto;margin-bottom:auto}
 
-  /* 말풍선은 각자 글자 길이만큼만(들쭉날쭉하게), 왼쪽 칼럼 안에서 자연스럽게 쌓인다 */
-  .home__quotes{justify-items:start}
-  .home__quotes li{width:fit-content;max-width:100%;white-space:nowrap}
+  /* 말풍선은 2x2 그리드로, 각 칸 폭에 맞춰 자연스럽게 줄바꿈된다 */
+  .home__quotes{justify-items:stretch}
+  .home__quotes li{width:auto;white-space:normal}
 
   /* 오른쪽(사진+이력)은 왼쪽 칼럼과 같은 높이 안에서 가운데로 */
   .home__side{width:100%;max-width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:40px}
@@ -672,7 +664,7 @@ main{scroll-behavior:smooth}
     .home__grid{grid-template-columns:minmax(0,1fr);align-items:start;padding-top:64px;padding-bottom:64px;gap:40px}
     .home__main h1{margin-bottom:14px}
     .home__main .lead{margin-bottom:20px}
-    .home__quotes{justify-items:stretch}
+    .home__quotes{grid-template-columns:minmax(0,1fr);justify-items:stretch}
     .home__quotes li{width:auto;white-space:normal}
     .home__side{justify-content:flex-start;gap:20px}
   }
