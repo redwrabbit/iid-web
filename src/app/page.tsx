@@ -15,6 +15,10 @@ export default function Home() {
           <div className="home__main">
             <h1>조직과 사람에 대한<br />의사결정을 <em>도와줍니다</em></h1>
             <p className="lead">이드 컨설팅은 그 머뭇거림을 실행으로 바꾸는 파트너입니다. 대기업부터 스타트업, 채용부터 구조조정과 M&amp;A까지 조직의 전 주기에 걸친 의사결정 현장을 경험해왔습니다.</p>
+            <blockquote className="home__feature-quote">
+              <p>“좋은 제도보다 중요한 것은 지금 우리 조직의 문제를 해결하는 제도입니다.”</p>
+              <cite>월간 인재경영 · HR EXECUTIVE 인터뷰 중</cite>
+            </blockquote>
             <ul className="home__quotes">
               <li>“나 없어도 잘 굴러가게 만들고 싶은데…”</li>
               <li>“지금 뭘 바꿔야 할지 모르겠다. 감이 없다.”</li>
