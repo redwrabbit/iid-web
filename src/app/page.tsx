@@ -21,6 +21,11 @@ export default function Home() {
               <li>“운영은 하고 있는데… 잘하고 있는 걸까?”</li>
               <li>“잘 뽑은 것 같은데, 왜 자꾸 떠나는 걸까?”</li>
             </ul>
+            <ul className="home__stats">
+              <li><strong>14년</strong><span>HR 외길 경력</span></li>
+              <li><strong>7곳</strong><span>대기업·스타트업 경험</span></li>
+              <li><strong>전 주기</strong><span>채용·구조조정·M&amp;A</span></li>
+            </ul>
           </div>
           <div className="home__side">
             <div className="home__author">
